@@ -174,10 +174,10 @@ export const evaluateQuizAnswer = async (articleContent: string, question: strin
     const result = await withRetry<{ feedback: string }>(() => postToApi('evaluateQuizAnswer', payload));
     return result.feedback;
   } catch (error) {
+    console.error("Error evaluating quiz answer:", error);
     if (error instanceof Error && error.message.includes('429')) {
       throw new Error('RATE_LIMIT_EXCEEDED');
     }
-    console.error("Error evaluating quiz answer:", error);
-    return `There was an error evaluating your answer. Please try again.`;
+    throw new Error('Failed to evaluate quiz answer.');
   }
 };
