@@ -43,7 +43,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             },
           },
         });
-        res.status(200).json(JSON.parse(response.text));
+        // Added fallback to prevent parsing undefined
+        res.status(200).json(JSON.parse(response.text ?? '{"topics":[]}'));
         break;
       }
       
@@ -79,7 +80,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           contents: { parts: [{ text: prompt }] },
           config: { systemInstruction: 'You are a highly accurate and concise translator.', temperature: 0.1 },
         });
-        res.status(200).json({ translation: response.text.trim() });
+        // Added fallback for trim()
+        res.status(200).json({ translation: (response.text ?? '').trim() });
         break;
       }
 
@@ -91,7 +93,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             contents: { parts: [{ text: prompt }] },
             config: { systemInstruction: `You are a language teacher creating a comprehension quiz.`, temperature: 0.5 },
         });
-        res.status(200).json({ question: response.text.trim() });
+        // Added fallback for trim()
+        res.status(200).json({ question: (response.text ?? '').trim() });
         break;
       }
 
@@ -103,7 +106,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             contents: { parts: [{ text: prompt }] },
             config: { systemInstruction: `You are a friendly and helpful language tutor providing feedback on a quiz.`, temperature: 0.4 },
         });
-        res.status(200).json({ feedback: response.text.trim() });
+        // Added fallback for trim()
+        res.status(200).json({ feedback: (response.text ?? '').trim() });
         break;
       }
 
