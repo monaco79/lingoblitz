@@ -10,29 +10,45 @@ const withRetry = async <T>(apiCall: () => Promise<Response>, maxRetries = 3, in
   let delay = initialDelay;
 
   while (attempt < maxRetries) {
-    const response = await apiCall();
-    if (response.ok) {
-      return response.json() as Promise<T>;
-    }
-    
-    if (response.status === 429) { // Rate limit error
-      attempt++;
-      if (attempt >= maxRetries) {
-        console.error(`API call failed after ${maxRetries} attempts with status 429.`);
-        throw new Error('RATE_LIMIT_EXCEEDED');
+    attempt++;
+    try {
+      const response = await apiCall();
+
+      if (response.ok) {
+        // Attempt to parse JSON, as it might be an empty response
+        const text = await response.text();
+        return text ? JSON.parse(text) : ({} as T);
       }
-      console.warn(`Rate limit hit. Retrying in ${delay / 1000}s... (Attempt ${attempt}/${maxRetries})`);
+      
+      // Retry on specific server errors or rate limiting
+      if (response.status === 429 || response.status >= 500) {
+        if (attempt >= maxRetries) {
+          console.error(`API call failed after ${maxRetries} attempts with status ${response.status}.`);
+          throw new Error(`API call failed with status ${response.status}`);
+        }
+        console.warn(`API call failed with status ${response.status}. Retrying in ${delay / 1000}s... (Attempt ${attempt}/${maxRetries})`);
+        await sleep(delay);
+        delay *= 2; // Exponential backoff
+      } else {
+        // For other client errors (4xx), fail immediately
+        const errorBody = await response.text();
+        console.error(`API call failed with status ${response.status}:`, errorBody);
+        throw new Error(`API call failed with status ${response.status}`);
+      }
+    } catch (error) {
+      // This catches network errors (e.g., fetch failing)
+      if (attempt >= maxRetries) {
+        console.error(`API call failed after ${maxRetries} attempts with network error.`, error);
+        throw error;
+      }
+      console.warn(`API call failed with network error. Retrying in ${delay / 1000}s... (Attempt ${attempt}/${maxRetries})`, error);
       await sleep(delay);
       delay *= 2;
-    } else {
-      // For other errors, fail immediately
-      const errorBody = await response.text();
-      console.error(`API call failed with status ${response.status}:`, errorBody);
-      throw new Error(`API call failed with status ${response.status}`);
     }
   }
   throw new Error("Exited retry loop unexpectedly.");
 };
+
 
 const postToApi = (action: string, payload: object) => {
   return fetch(API_ENDPOINT, {
@@ -55,30 +71,61 @@ export const generateTopicProposals = async (interests: string[], topicsToAvoid:
     const result = await withRetry<{ topics: string[] }>(() => postToApi('generateTopicProposals', payload));
     return result.topics || [];
   } catch (error) {
-     if (error instanceof Error && error.message === 'RATE_LIMIT_EXCEEDED') {
-      throw error; // Re-throw for specific UI handling
+     if (error instanceof Error && error.message.includes('429')) {
+      throw new Error('RATE_LIMIT_EXCEEDED');
     }
     console.error("Error generating topic proposals:", error);
-    const fallbacks = ["The History of Coffee", "Exploring the Amazon Rainforest", "The Science of Sleep", "How Cameras Work"];
-    return fallbacks.slice(0, count);
+    // Return an empty array on failure so the UI can handle it
+    return [];
   }
 };
 
-export const generateArticleStream = async (topic: string, settings: UserSettings): Promise<ReadableStream<Uint8Array> | null> => {
-  const payload = {
-    topic,
-    settings,
-    levelDescription: LEVEL_DESCRIPTIONS[settings.level as Level],
-    wordCount: LEVEL_WORD_COUNTS[settings.level as Level],
-  };
-  const response = await postToApi('generateArticleStream', payload);
+export const generateArticleStream = async (topic: string, settings: UserSettings): Promise<ReadableStream<Uint8Array>> => {
+    const payload = {
+        topic,
+        settings,
+        levelDescription: LEVEL_DESCRIPTIONS[settings.level as Level],
+        wordCount: LEVEL_WORD_COUNTS[settings.level as Level],
+    };
 
-  if (!response.ok) {
-    console.error("Error fetching article stream:", response.statusText);
-    throw new Error("Failed to generate article.");
-  }
-  return response.body;
+    let attempt = 0;
+    let delay = 1000;
+    const maxRetries = 3;
+
+    while (attempt < maxRetries) {
+        attempt++;
+        try {
+            const response = await postToApi('generateArticleStream', payload);
+
+            if (response.ok && response.body) {
+                return response.body;
+            }
+
+            if (response.status === 429 || response.status >= 500) {
+                if (attempt >= maxRetries) {
+                    throw new Error(`Stream generation failed after ${maxRetries} attempts with status ${response.status}.`);
+                }
+                console.warn(`Stream generation failed with status ${response.status}. Retrying in ${delay / 1000}s...`);
+                await sleep(delay);
+                delay *= 2;
+            } else {
+                const errorText = await response.text();
+                console.error("Error fetching article stream:", response.status, errorText);
+                throw new Error("Failed to generate article.");
+            }
+        } catch (error) {
+            if (attempt >= maxRetries) {
+                console.error(`Stream generation failed after ${maxRetries} attempts with network error.`, error);
+                throw new Error("Failed to generate article due to network issues.");
+            }
+            console.warn(`Stream generation failed with network error. Retrying in ${delay / 1000}s...`);
+            await sleep(delay);
+            delay *= 2;
+        }
+    }
+    throw new Error("Failed to generate article after multiple retries.");
 };
+
 
 export const translateWord = async (word: string, from: string, to: string): Promise<string> => {
   try {
@@ -86,8 +133,8 @@ export const translateWord = async (word: string, from: string, to: string): Pro
     const result = await withRetry<{ translation: string }>(() => postToApi('translateWord', payload));
     return result.translation;
   } catch (error) {
-    if (error instanceof Error && error.message === 'RATE_LIMIT_EXCEEDED') {
-      throw error; // Re-throw for specific UI handling
+    if (error instanceof Error && error.message.includes('429')) {
+      throw new Error('RATE_LIMIT_EXCEEDED');
     }
     console.error("Error translating word:", error);
     return "Translation failed.";
@@ -105,11 +152,12 @@ export const generateQuizQuestion = async (articleContent: string, learningLangu
     const result = await withRetry<{ question: string }>(() => postToApi('generateQuizQuestion', payload));
     return result.question;
   } catch (error) {
-    if (error instanceof Error && error.message === 'RATE_LIMIT_EXCEEDED') {
-      throw error; // Re-throw for specific UI handling
+    if (error instanceof Error && error.message.includes('429')) {
+      throw new Error('RATE_LIMIT_EXCEEDED');
     }
     console.error("Error generating quiz question:", error);
-    return `What was the main idea of the article? (Error generating specific question)`;
+    // Throw an error to be handled by the UI
+    throw new Error("Failed to generate quiz question.");
   }
 };
 
@@ -126,8 +174,8 @@ export const evaluateQuizAnswer = async (articleContent: string, question: strin
     const result = await withRetry<{ feedback: string }>(() => postToApi('evaluateQuizAnswer', payload));
     return result.feedback;
   } catch (error) {
-    if (error instanceof Error && error.message === 'RATE_LIMIT_EXCEEDED') {
-      throw error; // Re-throw for specific UI handling
+    if (error instanceof Error && error.message.includes('429')) {
+      throw new Error('RATE_LIMIT_EXCEEDED');
     }
     console.error("Error evaluating quiz answer:", error);
     return `There was an error evaluating your answer. Please try again.`;
