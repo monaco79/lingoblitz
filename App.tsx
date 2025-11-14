@@ -12,6 +12,7 @@ import MoonIcon from './components/icons/MoonIcon';
 import PostArticleActions from './components/PostArticleActions';
 import Quiz from './components/Quiz';
 import * as geminiService from './services/geminiService';
+import RefreshIcon from './components/icons/RefreshIcon';
 
 const App: React.FC = () => {
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
@@ -19,6 +20,7 @@ const App: React.FC = () => {
   const [topicProposals, setTopicProposals] = useState<string[]>([]);
   const [articleTitle, setArticleTitle] = useState<string>('');
   const [articleContent, setArticleContent] = useState<string>('');
+  const [blitzingTopic, setBlitzingTopic] = useState<string | null>(null);
   const [translationPopup, setTranslationPopup] = useState<TranslationPopup | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [skippedProposalHistory, setSkippedProposalHistory] = useState<string | null>(null);
@@ -27,6 +29,7 @@ const App: React.FC = () => {
   const [isQuizReady, setIsQuizReady] = useState(false);
   const [areProposalsReady, setAreProposalsReady] = useState(false);
   const [errorNotification, setErrorNotification] = useState<string | null>(null);
+  const [failedBlitzTopic, setFailedBlitzTopic] = useState<string | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('lingoBlitzTheme') as 'light' | 'dark') || 'light';
   });
@@ -49,9 +52,19 @@ const App: React.FC = () => {
   useEffect(() => {
     const savedSettings = localStorage.getItem('lingoBlitzSettings');
     if (savedSettings) {
-      const settings = JSON.parse(savedSettings);
-      setUserSettings({ ...settings, blitzedTopics: settings.blitzedTopics || [] });
-      setAppState(AppState.GENERATING_PROPOSALS);
+      try {
+        const settings = JSON.parse(savedSettings);
+        // Ensure blitzedTopics is always an array
+        if (!Array.isArray(settings.blitzedTopics)) {
+          settings.blitzedTopics = [];
+        }
+        setUserSettings(settings);
+        setAppState(AppState.GENERATING_PROPOSALS);
+      } catch (e) {
+        console.error("Failed to parse settings from localStorage", e);
+        localStorage.removeItem('lingoBlitzSettings');
+        setAppState(AppState.ONBOARDING);
+      }
     }
   }, []);
 
@@ -86,9 +99,9 @@ const App: React.FC = () => {
       } catch (error) {
         if (error instanceof Error && error.message === 'RATE_LIMIT_EXCEEDED') {
           showError("You've hit the request limit. Please wait a minute and try again.");
-          return [];
         }
-        throw error;
+        // The service now handles other errors and returns []
+        return [];
       }
   }, []);
 
@@ -97,25 +110,26 @@ const App: React.FC = () => {
       setTopicProposals([]);
       setSkippedProposalHistory(null);
       const proposals = await fetchProposals(userSettings, 2);
-      setTopicProposals(proposals);
+      if(proposals.length === 0) {
+        showError("Could not load topic ideas. Using fallbacks.");
+        setTopicProposals(["The History of Coffee", "Exploring the Amazon Rainforest"]);
+      } else {
+        setTopicProposals(proposals);
+      }
       setAppState(AppState.READY);
     }
   }, [userSettings, fetchProposals]);
 
   useEffect(() => {
     if (appState === AppState.GENERATING_PROPOSALS) {
-      fetchInitialProposals().catch(error => {
-        console.error("Failed to fetch initial proposals:", error);
-        showError("Could not load topic ideas. Check API setup and refresh.");
-        setAppState(AppState.READY); // Go to a stable state so UI is usable
-        setTopicProposals([]);
-      });
+      fetchInitialProposals();
     }
   }, [appState, fetchInitialProposals]);
 
   const handleBlitz = async (topic: string) => {
     if (!userSettings) return;
 
+    setBlitzingTopic(topic);
     setAppState(AppState.GENERATING_ARTICLE);
     setTranslationPopup(null);
     setArticleTitle('');
@@ -124,12 +138,11 @@ const App: React.FC = () => {
     setQuizFeedback(null);
     setIsQuizReady(false);
     setAreProposalsReady(false);
+    setFailedBlitzTopic(null);
     const currentProposals = [...topicProposals];
-    setTopicProposals([]);
-
+    
     try {
       const stream = await geminiService.generateArticleStream(topic, userSettings);
-      if (!stream) throw new Error("Failed to get article stream.");
 
       const reader = stream.getReader();
       const decoder = new TextDecoder();
@@ -156,6 +169,12 @@ const App: React.FC = () => {
         }
       }
 
+      // Important: Check for empty result to prevent silent failures.
+      if (accumulatedText.trim().length === 0) {
+        console.error("Blitz generation resulted in empty content.");
+        throw new Error("Generated article content is empty.");
+      }
+
       if (!titleFound && accumulatedText.length > 0) {
         const parts = accumulatedText.split('\n');
         setArticleTitle(parts[0].trim());
@@ -170,41 +189,49 @@ const App: React.FC = () => {
       
       setAppState(AppState.POST_ARTICLE_CHOICE);
       
-      // Chain background tasks to avoid hitting rate limits
-      try {
-        const question = await geminiService.generateQuizQuestion(finalContent, userSettings.learningLanguage, userSettings.level);
-        setQuizQuestion(question);
-        setIsQuizReady(true);
-        
-        // Now fetch proposals
-        const skipped = currentProposals.find(p => p !== topic) || null;
-        const topicsToAvoid = [...updatedSettings.blitzedTopics];
-        let proposalsToKeep: string[] = [];
-        if (skipped && skipped !== skippedProposalHistory) {
-            proposalsToKeep.push(skipped);
-            topicsToAvoid.push(skipped);
-        }
-        const numToGenerate = 2 - proposalsToKeep.length;
-        const newProposals = numToGenerate > 0 ? await fetchProposals(updatedSettings, numToGenerate, topicsToAvoid) : [];
-        
-        setTopicProposals([...proposalsToKeep, ...newProposals].sort(() => Math.random() - 0.5));
-        setSkippedProposalHistory(skipped);
-        setAreProposalsReady(true);
+      // Chain background tasks
+      geminiService.generateQuizQuestion(finalContent, userSettings.learningLanguage, userSettings.level)
+        .then(question => {
+          setQuizQuestion(question);
+          setIsQuizReady(true);
+        })
+        .catch(() => {
+          showError("Failed to generate quiz, but you can still continue.");
+          setQuizQuestion("What was the main idea of the article? (Error generating specific question)");
+          setIsQuizReady(true);
+        })
+        .finally(() => {
+          // Now fetch proposals
+          const skipped = currentProposals.find(p => p !== topic) || null;
+          const topicsToAvoid = [...updatedSettings.blitzedTopics];
+          let proposalsToKeep: string[] = [];
+          if (skipped && skipped !== skippedProposalHistory) {
+              proposalsToKeep.push(skipped);
+              topicsToAvoid.push(skipped);
+          }
+          const numToGenerate = 2 - proposalsToKeep.length;
 
-      } catch (error) {
-        // Errors from background tasks are handled inside the service
-        // but we can set states to ready to unblock UI
-        setIsQuizReady(true); // Let user proceed even if quiz fails
-        setAreProposalsReady(true); // Let user proceed even if proposals fail
-      }
+          if (numToGenerate > 0) {
+            fetchProposals(updatedSettings, numToGenerate, topicsToAvoid)
+              .then(newProposals => {
+                 setTopicProposals([...proposalsToKeep, ...newProposals].sort(() => Math.random() - 0.5));
+              })
+              .catch(() => showError("Failed to fetch new topic ideas."))
+              .finally(() => {
+                setSkippedProposalHistory(skipped);
+                setAreProposalsReady(true);
+              });
+          } else {
+             setTopicProposals(proposalsToKeep);
+             setSkippedProposalHistory(skipped);
+             setAreProposalsReady(true);
+          }
+        });
 
     } catch (error) {
       console.error("Error during Blitz generation:", error);
-      setArticleTitle("Error");
-      setArticleContent("There was an error generating the article. Please try again.");
-      setAppState(AppState.POST_ARTICLE_CHOICE);
-      setIsQuizReady(true);
-      setAreProposalsReady(true);
+      setFailedBlitzTopic(topic);
+      setAppState(AppState.ARTICLE_GENERATION_ERROR);
     }
   };
 
@@ -212,9 +239,18 @@ const App: React.FC = () => {
     if (!userSettings) return;
     
     const rect = event.currentTarget.getBoundingClientRect();
+    const popupEl = document.createElement('div');
+    popupEl.style.position = 'absolute';
+    popupEl.style.visibility = 'hidden';
+    popupEl.className = 'bg-white dark:bg-gray-800 border border-sky-500 rounded-lg shadow-xl p-3 text-center';
+    popupEl.style.minWidth = '120px';
+    document.body.appendChild(popupEl);
+    const popupHeight = popupEl.offsetHeight;
+    document.body.removeChild(popupEl);
+    
     const GAP = 15; // Space for the arrow + a little extra margin
-    const popupTop = rect.top - GAP;
-    const popupLeft = rect.left + rect.width / 2;
+    const popupTop = rect.top - popupHeight - GAP + window.scrollY;
+    const popupLeft = rect.left + rect.width / 2 + window.scrollX;
 
     setTranslationPopup({ word, translation: '...', position: { top: popupTop, left: popupLeft } });
 
@@ -238,6 +274,7 @@ const App: React.FC = () => {
   const handleNewBlitz = () => {
     setArticleTitle('');
     setArticleContent('');
+    setBlitzingTopic(null);
     setAppState(AppState.READY);
   };
   
@@ -263,6 +300,7 @@ const App: React.FC = () => {
   const handleContinueToNextBlitz = () => {
     setArticleTitle('');
     setArticleContent('');
+    setBlitzingTopic(null);
     setQuizQuestion(null);
     setQuizFeedback(null);
     setAppState(AppState.READY);
@@ -287,14 +325,37 @@ const App: React.FC = () => {
                 </div>
             </header>
 
-            {appState === AppState.GENERATING_ARTICLE && !articleContent && !articleTitle && (
-                 <div className="w-full max-w-4xl p-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg flex flex-col items-center justify-center min-h-[200px] gap-4">
-                    <LoadingSpinner className="h-8 w-8 text-sky-500" />
-                    <p className="text-lg text-gray-600 dark:text-gray-400">Generating your Blitz...</p>
-                </div>
+            {appState === AppState.GENERATING_ARTICLE && (
+              <div className="w-full max-w-4xl p-8 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg flex flex-col items-center justify-center min-h-[200px] gap-4">
+                <LoadingSpinner className="h-8 w-8 text-sky-500" />
+                <p className="text-lg text-gray-600 dark:text-gray-400">
+                  Generating your Blitz on "{blitzingTopic}"...
+                </p>
+              </div>
             )}
 
-            {(articleTitle || articleContent) && (
+            {appState === AppState.ARTICLE_GENERATION_ERROR && (
+              <div className="w-full max-w-4xl p-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg flex flex-col items-center justify-center min-h-[200px] gap-4">
+                <h3 className="text-xl font-bold text-red-500">Generation Failed</h3>
+                <p className="text-gray-600 dark:text-gray-400 text-center">
+                  We couldn't generate the Blitz for "{failedBlitzTopic}".<br />
+                  This can happen due to high traffic. Please try again.
+                </p>
+                <button
+                  onClick={() => {
+                      if (failedBlitzTopic) {
+                          handleBlitz(failedBlitzTopic);
+                      }
+                  }}
+                  className="bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200 flex items-center gap-2"
+                >
+                  <RefreshIcon />
+                  Try Again
+                </button>
+              </div>
+            )}
+
+            {(articleTitle || articleContent) && appState !== AppState.GENERATING_ARTICLE && appState !== AppState.ARTICLE_GENERATION_ERROR && (
                 <Article title={articleTitle} content={articleContent} onWordClick={handleWordClick} />
             )}
 
@@ -329,10 +390,8 @@ const App: React.FC = () => {
                   proposals={topicProposals} 
                   onBlitz={handleBlitz} 
                   onNewProposals={() => {
-                      setTopicProposals([]);
                       setAppState(AppState.GENERATING_PROPOSALS);
                   }} 
-                  isBlitzing={false}
                 />
             )}
         </div>
@@ -347,7 +406,7 @@ const App: React.FC = () => {
       )}
       {translationPopup && (
         <div
-          className="fixed z-50 transform -translate-x-1/2 -translate-y-full pointer-events-none"
+          className="fixed z-50 transform -translate-x-1/2"
           style={{
             top: `${translationPopup.position.top}px`,
             left: `${translationPopup.position.left}px`,
@@ -386,7 +445,7 @@ const App: React.FC = () => {
         </div>
       )}
       {errorNotification && (
-         <div className="fixed bottom-5 right-5 bg-red-500 text-white py-3 px-5 rounded-lg shadow-xl animate-bounce">
+         <div className="fixed bottom-5 right-5 bg-red-500 text-white py-3 px-5 rounded-lg shadow-xl animate-bounce z-50">
             {errorNotification}
         </div>
       )}
