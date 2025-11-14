@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import RefreshIcon from './icons/RefreshIcon';
+import LoadingSpinner from './icons/LoadingSpinner';
 
 interface TopicSelectorProps {
   proposals: string[];
   onBlitz: (topic: string) => void;
   onNewProposals: () => void;
-  isBlitzing: boolean;
 }
 
-const TopicSelector: React.FC<TopicSelectorProps> = ({ proposals, onBlitz, onNewProposals, isBlitzing }) => {
+const TopicSelector: React.FC<TopicSelectorProps> = ({ proposals, onBlitz, onNewProposals }) => {
   const [selectedTopic, setSelectedTopic] = useState('');
   const [customTopic, setCustomTopic] = useState('');
 
@@ -71,15 +71,14 @@ const TopicSelector: React.FC<TopicSelectorProps> = ({ proposals, onBlitz, onNew
       <div className="flex flex-col sm:flex-row gap-4">
         <button
           onClick={handleBlitz}
-          disabled={isBlitzing || (!selectedTopic && !customTopic.trim())}
-          className="flex-grow bg-sky-600 hover:bg-sky-500 disabled:bg-gray-500 disabled:cursor-not-allowed dark:disabled:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200 text-lg"
+          disabled={!selectedTopic && !customTopic.trim()}
+          className="flex-grow bg-sky-600 hover:bg-sky-500 disabled:bg-gray-500 disabled:cursor-not-allowed dark:disabled:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200 text-lg flex justify-center items-center gap-2"
         >
-          {isBlitzing ? 'Blitzing...' : "Let's Blitz!"}
+          Let's Blitz!
         </button>
         <button
           onClick={onNewProposals}
-          disabled={isBlitzing}
-          className="flex items-center justify-center gap-2 bg-gray-300 hover:bg-gray-400 text-gray-800 dark:text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200 dark:bg-gray-600 dark:hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center justify-center gap-2 bg-gray-300 hover:bg-gray-400 text-gray-800 dark:text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200 dark:bg-gray-600 dark:hover:bg-gray-500"
         >
           <RefreshIcon />
           New Proposals
