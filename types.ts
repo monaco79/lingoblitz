@@ -47,6 +47,7 @@ export enum AppState {
   GENERATING_PROPOSALS,
   READY,
   GENERATING_ARTICLE,
+  ARTICLE_GENERATION_ERROR,
   POST_ARTICLE_CHOICE, // After article, user chooses Quiz or New Blitz
   SHOWING_QUIZ,
   EVALUATING_QUIZ,
