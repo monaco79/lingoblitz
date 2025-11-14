@@ -50,7 +50,7 @@ const App: React.FC = () => {
     const savedSettings = localStorage.getItem('lingoBlitzSettings');
     if (savedSettings) {
       const settings = JSON.parse(savedSettings);
-      setUserSettings({ blitzedTopics: [], ...settings });
+      setUserSettings({ ...settings, blitzedTopics: settings.blitzedTopics || [] });
       setAppState(AppState.GENERATING_PROPOSALS);
     }
   }, []);
@@ -82,7 +82,7 @@ const App: React.FC = () => {
       topicsToAvoid: string[] = []
     ) => {
       try {
-        return await geminiService.generateTopicProposals(interests, [...blitzedTopics, ...topicsToAvoid], count, learningLanguage, level);
+        return await geminiService.generateTopicProposals(interests, [...(blitzedTopics || []), ...topicsToAvoid], count, learningLanguage, level);
       } catch (error) {
         if (error instanceof Error && error.message === 'RATE_LIMIT_EXCEEDED') {
           showError("You've hit the request limit. Please wait a minute and try again.");
@@ -104,7 +104,12 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (appState === AppState.GENERATING_PROPOSALS) {
-      fetchInitialProposals();
+      fetchInitialProposals().catch(error => {
+        console.error("Failed to fetch initial proposals:", error);
+        showError("Could not load topic ideas. Check API setup and refresh.");
+        setAppState(AppState.READY); // Go to a stable state so UI is usable
+        setTopicProposals([]);
+      });
     }
   }, [appState, fetchInitialProposals]);
 
@@ -158,7 +163,7 @@ const App: React.FC = () => {
         setArticleContent(finalContent);
       }
       
-      const updatedBlitzedTopics = [...userSettings.blitzedTopics, topic];
+      const updatedBlitzedTopics = [...(userSettings.blitzedTopics || []), topic];
       const updatedSettings = { ...userSettings, blitzedTopics: updatedBlitzedTopics };
       setUserSettings(updatedSettings);
       localStorage.setItem('lingoBlitzSettings', JSON.stringify(updatedSettings));
@@ -207,8 +212,9 @@ const App: React.FC = () => {
     if (!userSettings) return;
     
     const rect = event.currentTarget.getBoundingClientRect();
-    const popupTop = window.scrollY + rect.top - 85; 
-    const popupLeft = window.scrollX + rect.left + rect.width / 2;
+    const GAP = 15; // Space for the arrow + a little extra margin
+    const popupTop = rect.top - GAP;
+    const popupLeft = rect.left + rect.width / 2;
 
     setTranslationPopup({ word, translation: '...', position: { top: popupTop, left: popupLeft } });
 
@@ -341,7 +347,7 @@ const App: React.FC = () => {
       )}
       {translationPopup && (
         <div
-          className="fixed z-50 transform -translate-x-1/2 pointer-events-none"
+          className="fixed z-50 transform -translate-x-1/2 -translate-y-full pointer-events-none"
           style={{
             top: `${translationPopup.position.top}px`,
             left: `${translationPopup.position.left}px`,
