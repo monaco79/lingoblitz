@@ -23,9 +23,9 @@ const App: React.FC = () => {
   const [blitzingTopic, setBlitzingTopic] = useState<string | null>(null);
   const [translationPopup, setTranslationPopup] = useState<TranslationPopup | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [skippedProposalHistory, setSkippedProposalHistory] = useState<string | null>(null);
   const [quizQuestion, setQuizQuestion] = useState<string | null>(null);
   const [quizFeedback, setQuizFeedback] = useState<string | null>(null);
+  const [lastQuizAnswer, setLastQuizAnswer] = useState<string>('');
   const [isQuizReady, setIsQuizReady] = useState(false);
   const [areProposalsReady, setAreProposalsReady] = useState(false);
   const [errorNotification, setErrorNotification] = useState<string | null>(null);
@@ -90,17 +90,15 @@ const App: React.FC = () => {
   };
 
   const fetchProposals = useCallback(async (
-      { interests, blitzedTopics, learningLanguage, level }: UserSettings,
-      count: number,
-      topicsToAvoid: string[] = []
+      settings: UserSettings,
+      count: number
     ) => {
       try {
-        return await geminiService.generateTopicProposals(interests, [...(blitzedTopics || []), ...topicsToAvoid], count, learningLanguage, level);
+        return await geminiService.generateTopicProposals(settings.interests, settings.blitzedTopics || [], count, settings.learningLanguage, settings.level);
       } catch (error) {
         if (error instanceof Error && error.message === 'RATE_LIMIT_EXCEEDED') {
           showError("You've hit the request limit. Please wait a minute and try again.");
         }
-        // The service now handles other errors and returns []
         return [];
       }
   }, []);
@@ -108,7 +106,6 @@ const App: React.FC = () => {
   const fetchInitialProposals = useCallback(async () => {
     if (userSettings) {
       setTopicProposals([]);
-      setSkippedProposalHistory(null);
       const proposals = await fetchProposals(userSettings, 2);
       if(proposals.length === 0) {
         showError("Could not load topic ideas. Using fallbacks.");
@@ -136,10 +133,10 @@ const App: React.FC = () => {
     setArticleContent('');
     setQuizQuestion(null);
     setQuizFeedback(null);
+    setLastQuizAnswer('');
     setIsQuizReady(false);
     setAreProposalsReady(false);
     setFailedBlitzTopic(null);
-    const currentProposals = [...topicProposals];
     
     try {
       const stream = await geminiService.generateArticleStream(topic, userSettings);
@@ -169,7 +166,6 @@ const App: React.FC = () => {
         }
       }
 
-      // Important: Check for empty result to prevent silent failures.
       if (accumulatedText.trim().length === 0) {
         console.error("Blitz generation resulted in empty content.");
         throw new Error("Generated article content is empty.");
@@ -189,7 +185,6 @@ const App: React.FC = () => {
       
       setAppState(AppState.POST_ARTICLE_CHOICE);
       
-      // Chain background tasks
       geminiService.generateQuizQuestion(finalContent, userSettings.learningLanguage, userSettings.level)
         .then(question => {
           setQuizQuestion(question);
@@ -199,34 +194,18 @@ const App: React.FC = () => {
           showError("Failed to generate quiz, but you can still continue.");
           setQuizQuestion("What was the main idea of the article? (Error generating specific question)");
           setIsQuizReady(true);
-        })
-        .finally(() => {
-          // Now fetch proposals
-          const skipped = currentProposals.find(p => p !== topic) || null;
-          const topicsToAvoid = [...updatedSettings.blitzedTopics];
-          let proposalsToKeep: string[] = [];
-          if (skipped && skipped !== skippedProposalHistory) {
-              proposalsToKeep.push(skipped);
-              topicsToAvoid.push(skipped);
-          }
-          const numToGenerate = 2 - proposalsToKeep.length;
-
-          if (numToGenerate > 0) {
-            fetchProposals(updatedSettings, numToGenerate, topicsToAvoid)
-              .then(newProposals => {
-                 setTopicProposals([...proposalsToKeep, ...newProposals].sort(() => Math.random() - 0.5));
-              })
-              .catch(() => showError("Failed to fetch new topic ideas."))
-              .finally(() => {
-                setSkippedProposalHistory(skipped);
-                setAreProposalsReady(true);
-              });
-          } else {
-             setTopicProposals(proposalsToKeep);
-             setSkippedProposalHistory(skipped);
-             setAreProposalsReady(true);
-          }
         });
+      
+      fetchProposals(updatedSettings, 2)
+        .then(newProposals => {
+          if(newProposals.length > 0){
+            setTopicProposals(newProposals);
+          } else {
+             showError("Could not load new topic ideas.");
+          }
+        })
+        .catch(() => showError("Failed to fetch new topic ideas."))
+        .finally(() => setAreProposalsReady(true));
 
     } catch (error) {
       console.error("Error during Blitz generation:", error);
@@ -248,7 +227,7 @@ const App: React.FC = () => {
     const popupHeight = popupEl.offsetHeight;
     document.body.removeChild(popupEl);
     
-    const GAP = 15; // Space for the arrow + a little extra margin
+    const GAP = 15;
     const popupTop = rect.top - popupHeight - GAP + window.scrollY;
     const popupLeft = rect.left + rect.width / 2 + window.scrollX;
 
@@ -281,28 +260,37 @@ const App: React.FC = () => {
   const handleAnswerSubmit = async (answer: string) => {
     if (!userSettings || !quizQuestion || !articleContent) return;
     
+    setLastQuizAnswer(answer);
     setAppState(AppState.EVALUATING_QUIZ);
     try {
       const feedback = await geminiService.evaluateQuizAnswer(
         articleContent, quizQuestion, answer, userSettings.learningLanguage, userSettings.level
       );
       setQuizFeedback(feedback);
+      setAppState(AppState.SHOWING_QUIZ_FEEDBACK);
     } catch(error) {
         if (error instanceof Error && error.message === 'RATE_LIMIT_EXCEEDED') {
             showError("Evaluation limit hit. Please try again.");
+        } else {
+            showError("Sorry, we couldn't evaluate your answer right now.");
         }
-        setQuizFeedback("Sorry, there was an error evaluating your answer.");
-    } finally {
-      setAppState(AppState.SHOWING_QUIZ_FEEDBACK);
+        setAppState(AppState.QUIZ_EVALUATION_ERROR);
     }
   };
   
+  const handleRetryQuizEvaluation = () => {
+    if (lastQuizAnswer) {
+      handleAnswerSubmit(lastQuizAnswer);
+    }
+  };
+
   const handleContinueToNextBlitz = () => {
     setArticleTitle('');
     setArticleContent('');
     setBlitzingTopic(null);
     setQuizQuestion(null);
     setQuizFeedback(null);
+    setLastQuizAnswer('');
     setAppState(AppState.READY);
   };
 
@@ -368,13 +356,16 @@ const App: React.FC = () => {
                 />
             )}
 
-            {(appState === AppState.SHOWING_QUIZ || appState === AppState.EVALUATING_QUIZ || appState === AppState.SHOWING_QUIZ_FEEDBACK) && quizQuestion && (
+            {(appState === AppState.SHOWING_QUIZ || appState === AppState.EVALUATING_QUIZ || appState === AppState.SHOWING_QUIZ_FEEDBACK || appState === AppState.QUIZ_EVALUATION_ERROR) && quizQuestion && (
                 <Quiz 
                     question={quizQuestion}
                     onAnswerSubmit={handleAnswerSubmit}
                     isEvaluating={appState === AppState.EVALUATING_QUIZ}
                     feedback={quizFeedback}
                     onContinue={handleContinueToNextBlitz}
+                    isError={appState === AppState.QUIZ_EVALUATION_ERROR}
+                    onRetry={handleRetryQuizEvaluation}
+                    lastAnswer={lastQuizAnswer}
                 />
             )}
             
