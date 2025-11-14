@@ -51,6 +51,7 @@ export enum AppState {
   POST_ARTICLE_CHOICE, // After article, user chooses Quiz or New Blitz
   SHOWING_QUIZ,
   EVALUATING_QUIZ,
+  QUIZ_EVALUATION_ERROR,
   SHOWING_QUIZ_FEEDBACK,
 }
 
