@@ -1,5 +1,4 @@
-// Last updated: 2025-11-16 21:25
-// Fixed syntax error in step 3
+// Last updated: 2025-11-21 17:52
 
 import React, { useState, useEffect } from 'react';
 import { UserSettings, Language, Level, Topic, AzureVoice } from '../types';
@@ -39,12 +38,12 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
   const loadVoices = async () => {
     if (!settings.learningLanguage) return;
-    
+
     setIsLoadingVoices(true);
     try {
       const voices = await ttsService.getVoicesForLanguage(settings.learningLanguage);
       setAvailableVoices(voices);
-      
+
       // Auto-select first voice if none selected
       if (!settings.tts?.voice && voices.length > 0) {
         updateTTSSettings('voice', voices[0].name);
@@ -83,7 +82,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
   const playSampleVoice = async () => {
     if (!settings.learningLanguage || !settings.tts?.voice) return;
-    
+
     setIsPlayingSample(true);
     try {
       const sampleText = TTS_SAMPLE_SENTENCES[settings.learningLanguage];
@@ -104,7 +103,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       case 3:
         return (settings.interests?.length || 0) > 0;
       case 4:
-        return !!settings.tts?.voice;
+        // Allow if voice is selected OR if no voices are available (skip)
+        return !!settings.tts?.voice || availableVoices.length === 0;
       default:
         return false;
     }
@@ -137,7 +137,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           <div>
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-6">What is your current level?</h2>
             <div className="space-y-4">
-                <SelectInput label="My level in my learning language is..." value={settings.level!} onChange={(e) => updateSettings('level', e.target.value as Level)} options={ALL_LEVELS} />
+              <SelectInput label="My level in my learning language is..." value={settings.level!} onChange={(e) => updateSettings('level', e.target.value as Level)} options={ALL_LEVELS} />
             </div>
           </div>
         );
@@ -151,11 +151,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 <button
                   key={topic}
                   onClick={() => toggleInterest(topic)}
-                  className={`p-3 rounded-lingoblitz text-center transition-all duration-200 font-medium ${
-                    settings.interests?.includes(topic)
-                      ? 'gradient-lingoblitz text-white shadow-md'
-                      : 'bg-white hover:bg-gray-50 text-gray-800 dark:text-white dark:bg-gray-700 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600'
-                  }`}
+                  className={`p-3 rounded-lingoblitz text-center transition-all duration-200 font-medium ${settings.interests?.includes(topic)
+                    ? 'gradient-lingoblitz text-white shadow-md'
+                    : 'bg-white hover:bg-gray-50 text-gray-800 dark:text-white dark:bg-gray-700 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600'
+                    }`}
                 >
                   {topic}
                 </button>
@@ -168,10 +167,16 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           <div>
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-6">Voice Settings</h2>
             <p className="mb-6 text-gray-600 dark:text-gray-400">Choose how you want to hear {settings.learningLanguage}.</p>
-            
+
             {isLoadingVoices ? (
               <div className="flex justify-center items-center py-8">
                 <LoadingSpinner className="h-8 w-8 text-sky-500" />
+              </div>
+            ) : availableVoices.length === 0 ? (
+              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/30 rounded-lingoblitz border border-yellow-200 dark:border-yellow-700">
+                <p className="text-yellow-800 dark:text-yellow-200 text-center">
+                  No voices found for this language on your device. You can still proceed, but text-to-speech might not work.
+                </p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -179,14 +184,14 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Voice</label>
                   <div className="flex gap-2">
-                    <select 
-                      value={settings.tts?.voice || ''} 
+                    <select
+                      value={settings.tts?.voice || ''}
                       onChange={(e) => updateTTSSettings('voice', e.target.value)}
                       className="flex-1 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-lingoblitz py-3 px-4 focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-900 dark:text-white"
                     >
                       {availableVoices.map(voice => (
                         <option key={voice.name} value={voice.name}>
-                          {voice.displayName} ({voice.gender})
+                          {voice.displayName}
                         </option>
                       ))}
                     </select>
@@ -255,25 +260,25 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         {renderStep()}
         <div className="flex justify-between mt-8">
           {step > 1 ? (
-            <button 
-              onClick={handleBack} 
+            <button
+              onClick={handleBack}
               className="bg-white hover:bg-gray-50 dark:bg-gray-700 dark:hover:bg-gray-600 border-2 border-[#6263C4] text-gray-800 dark:text-white font-semibold py-3 px-6 rounded-lingoblitz transition-all duration-200"
             >
               Back
             </button>
           ) : <div />}
           {step < 4 ? (
-            <button 
-              onClick={handleNext} 
-              disabled={!canProceed()} 
+            <button
+              onClick={handleNext}
+              disabled={!canProceed()}
               className="gradient-lingoblitz hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lingoblitz transition-all duration-200 shadow-md"
             >
               Next
             </button>
           ) : (
-            <button 
-              onClick={() => onComplete(settings as UserSettings)} 
-              disabled={!canProceed()} 
+            <button
+              onClick={() => onComplete(settings as UserSettings)}
+              disabled={!canProceed()}
               className="gradient-lingoblitz hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lingoblitz transition-all duration-200 shadow-md"
             >
               Start Learning!
@@ -286,16 +291,16 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 };
 
 const SelectInput: React.FC<{ label: string; value: string; onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void; options: string[] }> = ({ label, value, onChange, options }) => (
-    <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{label}</label>
-        <select 
-          value={value} 
-          onChange={onChange} 
-          className="w-full bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-lingoblitz py-3 px-4 focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-900 dark:text-white"
-        >
-            {options.map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
-    </div>
+  <div>
+    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{label}</label>
+    <select
+      value={value}
+      onChange={onChange}
+      className="w-full bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-lingoblitz py-3 px-4 focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-900 dark:text-white"
+    >
+      {options.map(o => <option key={o} value={o}>{o}</option>)}
+    </select>
+  </div>
 );
 
 export default Onboarding;
