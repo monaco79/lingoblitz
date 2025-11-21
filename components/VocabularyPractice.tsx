@@ -19,6 +19,7 @@ const VocabularyPractice: React.FC<VocabularyPracticeProps> = ({ vocabulary, onC
   const [isFlipped, setIsFlipped] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [totalPracticedWords, setTotalPracticedWords] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
   const isMounted = useRef(true);
 
   useEffect(() => {
