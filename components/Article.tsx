@@ -79,9 +79,9 @@ const Article: React.FC<ArticleProps> = ({ title, content, level, ttsSettings, l
 
       return (
         <span
-          key={`word - ${ arrayIndex } `}
+          key={`word - ${arrayIndex} `}
           className={`
-            ${ isClickable ? "cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-md transition-colors duration-100 px-1 py-0.5 -mx-1 -my-0.5" : "" }
+            ${isClickable ? "cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-md transition-colors duration-100 px-1 py-0.5 -mx-1 -my-0.5" : ""}
 `}
           onClick={(e) => {
             if (isClickable) {
@@ -106,11 +106,11 @@ const Article: React.FC<ArticleProps> = ({ title, content, level, ttsSettings, l
       return;
     }
 
-    console.log(`▶️ Play / Resume clicked.Resume index: ${ playbackIndexRef.current } `);
+    console.log(`▶️ Play / Resume clicked.Resume index: ${playbackIndexRef.current} `);
     setIsPlaying(true);
     setIsPaused(false);
 
-    const fullText = `${ title }. ${ content } `;
+    const fullText = `${title}. ${content} `;
 
     // Determine where to start: from 0 or from the last stopped position
     const startIndex = playbackIndexRef.current;
@@ -246,7 +246,7 @@ const Article: React.FC<ArticleProps> = ({ title, content, level, ttsSettings, l
         {content.split('\n').map((paragraph, pIndex) => {
           if (!paragraph.trim()) return null;
           return (
-            <p key={`p - ${ pIndex } `}>
+            <p key={`p - ${pIndex} `}>
               {makeWordsClickable(paragraph)}
             </p>
           );
