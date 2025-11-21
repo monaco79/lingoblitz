@@ -1,5 +1,4 @@
-// Last updated: 2025-11-18 19:30
-// Added onBoundary callback support for tracking playback position
+// Last updated: 2025-11-21 18:50
 
 import { AzureVoice, Language } from '../types';
 import { LANGUAGE_TO_LOCALE } from '../constants';
@@ -198,6 +197,7 @@ export const speak = async (
   text: string,
   voiceName: string,
   speed: number,
+  language?: Language,
   onPlaybackEnd?: () => void,
   onBoundary?: (charIndex: number) => void
 ): Promise<void> => {
@@ -218,7 +218,24 @@ export const speak = async (
   const selectedVoice = allVoices.find(v => v.name === voiceName);
 
   currentUtterance = new SpeechSynthesisUtterance(text);
-  currentUtterance.voice = selectedVoice || allVoices[0] || null;
+
+  // Set voice if found
+  if (selectedVoice) {
+    currentUtterance.voice = selectedVoice;
+  }
+
+  // CRITICAL FIX for Mobile:
+  // Always set the language explicitly. 
+  // If a specific voice is selected, use its lang.
+  // If not (or if we want to force the target language), use the requested language.
+  // This prevents Android from falling back to the system default language (e.g. German)
+  // when it should be speaking Spanish.
+  if (language) {
+    currentUtterance.lang = LANGUAGE_TO_LOCALE[language];
+  } else if (selectedVoice) {
+    currentUtterance.lang = selectedVoice.lang;
+  }
+
   currentUtterance.rate = speed;
   currentUtterance.pitch = 1.0;
   currentUtterance.volume = 1.0;
