@@ -1,5 +1,4 @@
-// Last updated: 2025-11-18 19:30
-// Added onBoundary callback support for tracking playback position
+// Last updated: 2025-11-21 17:53
 
 import { AzureVoice, Language } from '../types';
 import { LANGUAGE_TO_LOCALE } from '../constants';
@@ -14,19 +13,47 @@ let manuallyCancelled = false;
 /**
  * Get all available voices as a Promise (handles async voice loading)
  */
+/**
+ * Get all available voices as a Promise (handles async voice loading)
+ * Includes polling and timeout for robust mobile support
+ */
 const getAllVoices = (): Promise<SpeechSynthesisVoice[]> => {
   return new Promise((resolve) => {
-    const voices = window.speechSynthesis.getVoices();
+    let voices = window.speechSynthesis.getVoices();
     if (voices.length > 0) {
       resolve(voices);
       return;
     }
 
-    window.speechSynthesis.addEventListener('voiceschanged', () => {
-      resolve(window.speechSynthesis.getVoices());
-    }, { once: true });
+    // Mobile browsers are tricky. We'll use a combination of event listener,
+    // polling, and a timeout to ensure we return SOMETHING.
 
-    window.speechSynthesis.getVoices();
+    let resolved = false;
+    const finish = (v: SpeechSynthesisVoice[]) => {
+      if (resolved) return;
+      resolved = true;
+      resolve(v);
+    };
+
+    // 1. Event Listener
+    window.speechSynthesis.onvoiceschanged = () => {
+      finish(window.speechSynthesis.getVoices());
+    };
+
+    // 2. Polling (every 100ms for 2s)
+    const intervalId = setInterval(() => {
+      const v = window.speechSynthesis.getVoices();
+      if (v.length > 0) {
+        clearInterval(intervalId);
+        finish(v);
+      }
+    }, 100);
+
+    // 3. Timeout (3s fallback)
+    setTimeout(() => {
+      clearInterval(intervalId);
+      finish(window.speechSynthesis.getVoices()); // Return whatever we have, even if empty
+    }, 3000);
   });
 };
 
