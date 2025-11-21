@@ -1,0 +1,5 @@
+{
+  "name": "LingoBlitz",
+  "description": "An app for immersive language learning through AI generated articles ('Blitzes') based on the user's interests and current level in their learning language.",
+  "requestFramePermissions": []
+}
