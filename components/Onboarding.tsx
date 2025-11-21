@@ -1,4 +1,4 @@
-// Last updated: 2025-11-21 17:52
+// Last updated: 2025-11-21 18:53
 
 import React, { useState, useEffect } from 'react';
 import { UserSettings, Language, Level, Topic, AzureVoice } from '../types';
@@ -86,7 +86,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     setIsPlayingSample(true);
     try {
       const sampleText = TTS_SAMPLE_SENTENCES[settings.learningLanguage];
-      await ttsService.speak(sampleText, settings.tts.voice, settings.tts.speed);
+      await ttsService.speak(sampleText, settings.tts.voice, settings.tts.speed, settings.learningLanguage);
     } catch (error) {
       console.error('Failed to play sample:', error);
     } finally {
