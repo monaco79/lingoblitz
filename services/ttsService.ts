@@ -1,4 +1,5 @@
-// Last updated: 2025-11-21 17:53
+// Last updated: 2025-11-18 19:30
+// Added onBoundary callback support for tracking playback position
 
 import { AzureVoice, Language } from '../types';
 import { LANGUAGE_TO_LOCALE } from '../constants';
@@ -68,8 +69,14 @@ export const getVoicesForLanguage = async (language: Language): Promise<AzureVoi
     const allVoices = await getAllVoices();
 
     const languageVoices = allVoices.filter(voice => {
-      const voiceLang = voice.lang.replace('_', '-').toLowerCase();
-      return voiceLang === langCode || voiceLang.startsWith(langCode + '-');
+      // Normalize voice language: lower case, replace underscores with hyphens
+      const voiceLang = voice.lang.toLowerCase().replace('_', '-');
+
+      // Check for exact match or prefix match (e.g. "en-us" starts with "en-")
+      // Also check if the voice language STARTS with the target language code (e.g. "en" matches "en-US")
+      return voiceLang === langCode ||
+        voiceLang.startsWith(langCode + '-') ||
+        voiceLang.startsWith(langCode);
     });
 
     const microsoftVoices: SpeechSynthesisVoice[] = [];
