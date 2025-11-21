@@ -1,4 +1,3 @@
-```
 // Last updated: 2025-11-18 19:35
 // Implemented resume-from-stop logic using tracked charIndex
 
