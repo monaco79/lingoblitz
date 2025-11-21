@@ -1,8 +1,9 @@
+```
 // Last updated: 2025-11-18 19:35
 // Implemented resume-from-stop logic using tracked charIndex
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Level, TTSSettings } from '../types';
+import { Level, TTSSettings, Language } from '../types';
 import * as ttsService from '../services/ttsService';
 
 interface ArticleProps {
@@ -10,10 +11,11 @@ interface ArticleProps {
   content: string;
   level: Level;
   ttsSettings: TTSSettings;
+  language: Language;
   onWordClick: (word: string, event: React.MouseEvent<HTMLSpanElement>) => void;
 }
 
-const Article: React.FC<ArticleProps> = ({ title, content, level, ttsSettings, onWordClick }) => {
+const Article: React.FC<ArticleProps> = ({ title, content, level, ttsSettings, language, onWordClick }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const autoPlayTriggered = useRef(false);
@@ -78,10 +80,10 @@ const Article: React.FC<ArticleProps> = ({ title, content, level, ttsSettings, o
 
       return (
         <span
-          key={`word-${arrayIndex}`}
+          key={`word - ${ arrayIndex } `}
           className={`
-            ${isClickable ? "cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-md transition-colors duration-100 px-1 py-0.5 -mx-1 -my-0.5" : ""}
-          `}
+            ${ isClickable ? "cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-md transition-colors duration-100 px-1 py-0.5 -mx-1 -my-0.5" : "" }
+`}
           onClick={(e) => {
             if (isClickable) {
               // Stop playback if active so user can hear the word
@@ -105,11 +107,11 @@ const Article: React.FC<ArticleProps> = ({ title, content, level, ttsSettings, o
       return;
     }
 
-    console.log(`▶️ Play/Resume clicked. Resume index: ${playbackIndexRef.current}`);
+    console.log(`▶️ Play / Resume clicked.Resume index: ${ playbackIndexRef.current } `);
     setIsPlaying(true);
     setIsPaused(false);
 
-    const fullText = `${title}. ${content}`;
+    const fullText = `${ title }. ${ content } `;
 
     // Determine where to start: from 0 or from the last stopped position
     const startIndex = playbackIndexRef.current;
@@ -130,6 +132,7 @@ const Article: React.FC<ArticleProps> = ({ title, content, level, ttsSettings, o
       textToSpeak,
       ttsSettings.voice,
       ttsSettings.speed,
+      language,
       () => {
         console.log('🎵 Playback ended normally');
         if (isMounted.current) {
@@ -244,7 +247,7 @@ const Article: React.FC<ArticleProps> = ({ title, content, level, ttsSettings, o
         {content.split('\n').map((paragraph, pIndex) => {
           if (!paragraph.trim()) return null;
           return (
-            <p key={`p-${pIndex}`}>
+            <p key={`p - ${ pIndex } `}>
               {makeWordsClickable(paragraph)}
             </p>
           );
