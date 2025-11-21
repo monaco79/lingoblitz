@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import LoadingSpinner from './icons/LoadingSpinner';
-import { TTSSettings } from '../types';
+import { TTSSettings, Language } from '../types';
 import * as ttsService from '../services/ttsService';
 
 interface QuizProps {
@@ -16,6 +16,7 @@ interface QuizProps {
   onContinue: () => void;
   onWordClick?: (word: string, event: React.MouseEvent<HTMLSpanElement>) => void;
   ttsSettings: TTSSettings;
+  language: Language;
   hasVocabulary: boolean;
   onPracticeVocabulary: () => void;
   hasCompletedVocabulary: boolean;
@@ -29,6 +30,7 @@ const Quiz: React.FC<QuizProps> = ({
   onContinue,
   onWordClick,
   ttsSettings,
+  language,
   hasVocabulary,
   onPracticeVocabulary,
   hasCompletedVocabulary
@@ -101,22 +103,27 @@ const Quiz: React.FC<QuizProps> = ({
       ? textToClean.substring(startIndex)
       : textToClean;
 
-    // Update offset
-    playbackOffsetRef.current = (startIndex > 0 && startIndex < textToClean.length - 5) ? startIndex : 0;
-
-    if (playbackOffsetRef.current === 0) {
-      playbackIndexRef.current = 0;
+    if (startIndex === 0) {
+      playbackOffsetRef.current = 0;
+    } else {
+      playbackOffsetRef.current = startIndex;
     }
 
     ttsService.speak(
       textToSpeak,
       ttsSettings.voice,
       ttsSettings.speed,
+      language,
       () => {
         console.log('🎵 [Quiz] Playback ended');
         if (isMounted.current) {
-          // Robustness check
-          if (window.speechSynthesis.speaking) {
+          if (isPaused) {
+            console.log('⏸️ [Quiz] Paused - not resetting index');
+            return;
+          }
+
+          // Double check if we are still speaking according to browser
+          if (ttsService.isSpeaking()) {
             console.warn('⚠️ [Quiz] onEnd fired but still speaking - ignoring');
             return;
           }
