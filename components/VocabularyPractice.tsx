@@ -2,14 +2,14 @@
 // Design update: Gradient flashcard, white buttons with red/green borders, progress bar
 
 import React, { useState, useEffect, useRef } from 'react';
-import { VocabularyItem, TTSSettings } from '../types';
+import { VocabularyItem, TTSSettings, Language } from '../types';
 import * as ttsService from '../services/ttsService';
 import Confetti from './Confetti';
 
 interface VocabularyPracticeProps {
   vocabulary: VocabularyItem[];
   onComplete: () => void;
-  learningLanguage: string;
+  learningLanguage: Language;
   ttsSettings: TTSSettings;
 }
 
@@ -51,7 +51,9 @@ const VocabularyPractice: React.FC<VocabularyPracticeProps> = ({ vocabulary, onC
           ttsService.speak(
             currentWord.word,
             ttsSettings.voice,
-            ttsSettings.speed
+            ttsSettings.speed,
+            learningLanguage as any, // Cast to Language enum type
+            () => setIsPlaying(false)
           );
         }
       }, 300);
