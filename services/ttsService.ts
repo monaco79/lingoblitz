@@ -68,42 +68,48 @@ const getAllVoices = (): Promise<SpeechSynthesisVoice[]> => {
 /**
  * Get available voices for a specific language
  */
+/**
+ * Get available voices for a specific language
+ * Adapted from KimChi logic to prioritize high-quality voices
+ */
 export const getVoicesForLanguage = async (language: Language): Promise<AzureVoice[]> => {
   const locale = LANGUAGE_TO_LOCALE[language];
-  const langCode = locale.split('-')[0].toLowerCase();
+  const langCode = locale.split('-')[0]; // e.g. "en", "es"
 
   try {
     const allVoices = await getAllVoices();
 
-    const languageVoices = allVoices.filter(voice => {
-      // Normalize voice language: lower case, replace underscores with hyphens
-      const voiceLang = voice.lang.toLowerCase().replace('_', '-');
+    // 1. Filter by language code (e.g. all "es-*" voices)
+    const languageVoices = allVoices.filter(voice =>
+      voice.lang.toLowerCase().startsWith(langCode.toLowerCase())
+    );
 
-      // Check for exact match or prefix match (e.g. "en-us" starts with "en-")
-      // Also check if the voice language STARTS with the target language code (e.g. "en" matches "en-US")
-      return voiceLang === langCode ||
-        voiceLang.startsWith(langCode + '-') ||
-        voiceLang.startsWith(langCode);
+    // 2. Sort voices by quality (Microsoft > Google > Natural > Others)
+    languageVoices.sort((a, b) => {
+      const aName = a.name.toLowerCase();
+      const bName = b.name.toLowerCase();
+
+      const aIsMicrosoft = aName.includes('microsoft');
+      const bIsMicrosoft = bName.includes('microsoft');
+      const aIsGoogle = aName.includes('google') || aName.includes('chrome');
+      const bIsGoogle = bName.includes('google') || bName.includes('chrome');
+      const aIsNatural = aName.includes('natural') || !a.localService; // !localService often implies cloud/natural
+      const bIsNatural = bName.includes('natural') || !b.localService;
+
+      if (aIsMicrosoft && !bIsMicrosoft) return -1;
+      if (!aIsMicrosoft && bIsMicrosoft) return 1;
+
+      if (aIsGoogle && !bIsGoogle) return -1;
+      if (!aIsGoogle && bIsGoogle) return 1;
+
+      if (aIsNatural && !bIsNatural) return -1;
+      if (!aIsNatural && bIsNatural) return 1;
+
+      return aName.localeCompare(bName);
     });
 
-    const microsoftVoices: SpeechSynthesisVoice[] = [];
-    const googleVoices: SpeechSynthesisVoice[] = [];
-    const otherVoices: SpeechSynthesisVoice[] = [];
-
-    languageVoices.forEach(voice => {
-      const name = voice.name.toLowerCase();
-      if (name.includes('microsoft')) {
-        microsoftVoices.push(voice);
-      } else if (name.includes('google')) {
-        googleVoices.push(voice);
-      } else {
-        otherVoices.push(voice);
-      }
-    });
-
-    const sortedVoices = [...microsoftVoices, ...googleVoices, ...otherVoices];
-
-    const formattedVoices: AzureVoice[] = sortedVoices.map(voice => ({
+    // 3. Format for app usage
+    const formattedVoices: AzureVoice[] = languageVoices.map(voice => ({
       name: voice.name,
       displayName: `${voice.name} (${voice.lang})`,
       locale: voice.lang.replace('_', '-')
@@ -119,6 +125,7 @@ export const getVoicesForLanguage = async (language: Language): Promise<AzureVoi
 
 /**
  * Get the default (first available) voice for a language
+ * Since getVoicesForLanguage sorts by quality, we can just take the first one.
  */
 export const getDefaultVoice = async (language: Language): Promise<string> => {
   try {
@@ -126,48 +133,21 @@ export const getDefaultVoice = async (language: Language): Promise<string> => {
 
     if (voices.length === 0) return '';
 
-    const microsoftVoice = voices.find(v => v.name.toLowerCase().includes('microsoft'));
+    // KimChi logic: Check for specific high-quality keywords if the sort didn't catch them
+    // (Though our sort above should have handled this, it's good to be safe)
+    const microsoftVoice = voices.find(v =>
+      v.name.toLowerCase().includes('microsoft') ||
+      v.name.toLowerCase().includes('natural')
+    );
     if (microsoftVoice) return microsoftVoice.name;
 
-    const googleVoice = voices.find(v => v.name.toLowerCase().includes('google'));
+    const googleVoice = voices.find(v =>
+      v.name.toLowerCase().includes('google') ||
+      v.name.toLowerCase().includes('chrome')
+    );
     if (googleVoice) return googleVoice.name;
 
-    const applePreferred: { [key: string]: string[] } = {
-      'French': ['Thomas', 'Amelie', 'Marie'],
-      'English': ['Daniel', 'Samantha', 'Arthur', 'Martha', 'Gordon'],
-      'Spanish': ['Mónica', 'Monica', 'Jorge', 'Juan', 'Paulina'],
-      'German': ['Anna', 'Markus', 'Petra', 'Yannick'],
-      'Italian': ['Alice', 'Luca', 'Federica'],
-      'Portuguese': ['Joana', 'Luciana', 'Catarina'],
-      'Japanese': ['Kyoko', 'Otoya'],
-      'Chinese': ['Ting-Ting', 'Li-Mu']
-    };
-
-    const preferredNames = applePreferred[language];
-    if (preferredNames) {
-      for (const name of preferredNames) {
-        // Flexible matching: check if voice name contains the preferred name (case-insensitive)
-        // Also try to match normalized versions (e.g. "Monica" vs "Mónica")
-        const normalizedName = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-
-        const preferredVoice = voices.find(v => {
-          const vName = v.name.toLowerCase();
-          const vNameNorm = v.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-          return vName.includes(name.toLowerCase()) || vNameNorm.includes(normalizedName);
-        });
-
-        if (preferredVoice) return preferredVoice.name;
-      }
-    }
-
-    // Fallback: Find any voice that matches the language locale prefix (e.g. 'es' for Spanish)
-    // Prefer voices that are NOT "Google" if we are on iOS (though they likely won't exist there)
-    // On Android, we might only have "Google" voices.
-    const localePrefix = LANGUAGE_TO_LOCALE[language].split('-')[0];
-    const fallbackVoice = voices.find(v => v.locale.startsWith(localePrefix));
-
-    if (fallbackVoice) return fallbackVoice.name;
-
+    // Fallback to the first voice (which is already sorted by best guess)
     return voices[0].name;
 
   } catch (error) {
