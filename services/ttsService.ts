@@ -164,7 +164,7 @@ export const getDefaultVoice = async (language: Language): Promise<string> => {
     // Prefer voices that are NOT "Google" if we are on iOS (though they likely won't exist there)
     // On Android, we might only have "Google" voices.
     const localePrefix = LANGUAGE_TO_LOCALE[language].split('-')[0];
-    const fallbackVoice = voices.find(v => v.lang.startsWith(localePrefix));
+    const fallbackVoice = voices.find(v => v.locale.startsWith(localePrefix));
 
     if (fallbackVoice) return fallbackVoice.name;
 
