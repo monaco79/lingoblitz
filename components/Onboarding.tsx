@@ -34,6 +34,15 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   useEffect(() => {
     if (step === 4 && settings.learningLanguage) {
       loadVoices();
+
+      // CRITICAL FIX: Listen for voice changes!
+      window.speechSynthesis.onvoiceschanged = () => {
+        loadVoices();
+      };
+
+      return () => {
+        window.speechSynthesis.onvoiceschanged = null;
+      };
     }
   }, [step, settings.learningLanguage]);
 
