@@ -20,6 +20,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentSettings, onSave, 
   const [isLoadingVoices, setIsLoadingVoices] = useState(false);
   const [isPlayingSample, setIsPlayingSample] = useState(false);
 
+  const loadingRef = React.useRef(false);
+
   // Speed mapping for levels
   const LEVEL_SPEEDS: { [key in Level]: number } = {
     [Level.AbsoluteBeginner]: 0.6,
@@ -38,7 +40,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentSettings, onSave, 
     // Mobile browsers often load voices asynchronously AFTER the component mounts.
     // Without this listener, we miss the voices when they finally arrive.
     window.speechSynthesis.onvoiceschanged = () => {
-      loadVoices();
+      // Debounce or check if we really need to reload
+      if (!loadingRef.current) {
+        loadVoices();
+      }
     };
 
     return () => {
@@ -62,6 +67,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentSettings, onSave, 
   }, [settings.level]);
 
   const loadVoices = async () => {
+    if (loadingRef.current) return;
+
+    loadingRef.current = true;
     setIsLoadingVoices(true);
     try {
       const voices = await ttsService.getVoicesForLanguage(settings.learningLanguage);
@@ -78,6 +86,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentSettings, onSave, 
       console.error('Failed to load voices:', error);
     } finally {
       setIsLoadingVoices(false);
+      loadingRef.current = false;
     }
   };
 
@@ -240,16 +249,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentSettings, onSave, 
         >
           Save Changes
         </button>
-      </div>
 
-      {/* Debug Info for Voices */}
-      <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
-        <details className="text-xs text-gray-500 dark:text-gray-400">
-          <summary className="cursor-pointer hover:text-gray-700 dark:hover:text-gray-200">Debug: Available Voices ({availableVoices.length})</summary>
-          <pre className="mt-2 p-2 bg-gray-100 dark:bg-gray-900 rounded overflow-x-auto whitespace-pre-wrap">
-            {availableVoices.map(v => `${v.name} (${v.locale})`).join('\n')}
-          </pre>
-        </details>
+        {/* Debug Info for Voices */}
+        <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <details className="text-xs text-gray-500 dark:text-gray-400">
+            <summary className="cursor-pointer hover:text-gray-700 dark:hover:text-gray-200">Debug: Available Voices ({availableVoices.length})</summary>
+            <pre className="mt-2 p-2 bg-gray-100 dark:bg-gray-900 rounded overflow-x-auto whitespace-pre-wrap">
+              {availableVoices.map(v => `${v.name} (${v.locale})`).join('\n')}
+            </pre>
+          </details>
+        </div>
       </div>
     </div>
   );
