@@ -133,12 +133,12 @@ export const getDefaultVoice = async (language: Language): Promise<string> => {
     if (googleVoice) return googleVoice.name;
 
     const applePreferred: { [key: string]: string[] } = {
-      'French': ['Thomas', 'Amelie'],
-      'English': ['Daniel', 'Samantha', 'Arthur'],
-      'Spanish': ['Mónica', 'Jorge', 'Juan'],
-      'German': ['Anna', 'Markus', 'Petra'],
-      'Italian': ['Alice', 'Luca'],
-      'Portuguese': ['Joana', 'Luciana'],
+      'French': ['Thomas', 'Amelie', 'Marie'],
+      'English': ['Daniel', 'Samantha', 'Arthur', 'Martha', 'Gordon'],
+      'Spanish': ['Mónica', 'Monica', 'Jorge', 'Juan', 'Paulina'],
+      'German': ['Anna', 'Markus', 'Petra', 'Yannick'],
+      'Italian': ['Alice', 'Luca', 'Federica'],
+      'Portuguese': ['Joana', 'Luciana', 'Catarina'],
       'Japanese': ['Kyoko', 'Otoya'],
       'Chinese': ['Ting-Ting', 'Li-Mu']
     };
@@ -146,10 +146,27 @@ export const getDefaultVoice = async (language: Language): Promise<string> => {
     const preferredNames = applePreferred[language];
     if (preferredNames) {
       for (const name of preferredNames) {
-        const preferredVoice = voices.find(v => v.name.toLowerCase().includes(name.toLowerCase()));
+        // Flexible matching: check if voice name contains the preferred name (case-insensitive)
+        // Also try to match normalized versions (e.g. "Monica" vs "Mónica")
+        const normalizedName = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+        const preferredVoice = voices.find(v => {
+          const vName = v.name.toLowerCase();
+          const vNameNorm = v.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+          return vName.includes(name.toLowerCase()) || vNameNorm.includes(normalizedName);
+        });
+
         if (preferredVoice) return preferredVoice.name;
       }
     }
+
+    // Fallback: Find any voice that matches the language locale prefix (e.g. 'es' for Spanish)
+    // Prefer voices that are NOT "Google" if we are on iOS (though they likely won't exist there)
+    // On Android, we might only have "Google" voices.
+    const localePrefix = LANGUAGE_TO_LOCALE[language].split('-')[0];
+    const fallbackVoice = voices.find(v => v.lang.startsWith(localePrefix));
+
+    if (fallbackVoice) return fallbackVoice.name;
 
     return voices[0].name;
 
