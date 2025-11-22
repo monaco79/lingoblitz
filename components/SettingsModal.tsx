@@ -222,17 +222,26 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentSettings, onSave, 
           </div>
         </div>
 
-        <div className="flex justify-end mt-8">
-          <button
-            onClick={() => onSave(settings)}
-            disabled={!canSave}
-            className="gradient-lingoblitz hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lingoblitz transition-all duration-200 shadow-md"
-          >
-            Save Changes
-          </button>
-        </div>
+        <button
+          onClick={() => onSave(settings)}
+          disabled={!canSave}
+          className="gradient-lingoblitz hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lingoblitz transition-all duration-200 shadow-md"
+        >
+          Save Changes
+        </button>
+      </div>
+
+      {/* Debug Info for Voices */}
+      <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <details className="text-xs text-gray-500 dark:text-gray-400">
+          <summary className="cursor-pointer hover:text-gray-700 dark:hover:text-gray-200">Debug: Available Voices ({availableVoices.length})</summary>
+          <pre className="mt-2 p-2 bg-gray-100 dark:bg-gray-900 rounded overflow-x-auto whitespace-pre-wrap">
+            {availableVoices.map(v => `${v.name} (${v.locale})`).join('\n')}
+          </pre>
+        </details>
       </div>
     </div>
+    </div >
   );
 };
 

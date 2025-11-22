@@ -132,21 +132,23 @@ export const getDefaultVoice = async (language: Language): Promise<string> => {
     const googleVoice = voices.find(v => v.name.toLowerCase().includes('google'));
     if (googleVoice) return googleVoice.name;
 
-    const applePreferred: { [key: string]: string } = {
-      'French': 'Thomas',
-      'English': 'Daniel',
-      'Spanish': 'Mónica',
-      'German': 'Anna',
-      'Italian': 'Alice',
-      'Portuguese': 'Joana',
-      'Japanese': 'Kyoko',
-      'Chinese': 'Ting-Ting'
+    const applePreferred: { [key: string]: string[] } = {
+      'French': ['Thomas', 'Amelie'],
+      'English': ['Daniel', 'Samantha', 'Arthur'],
+      'Spanish': ['Mónica', 'Jorge', 'Juan'],
+      'German': ['Anna', 'Markus', 'Petra'],
+      'Italian': ['Alice', 'Luca'],
+      'Portuguese': ['Joana', 'Luciana'],
+      'Japanese': ['Kyoko', 'Otoya'],
+      'Chinese': ['Ting-Ting', 'Li-Mu']
     };
 
-    const preferredName = applePreferred[language];
-    if (preferredName) {
-      const preferredVoice = voices.find(v => v.name.includes(preferredName));
-      if (preferredVoice) return preferredVoice.name;
+    const preferredNames = applePreferred[language];
+    if (preferredNames) {
+      for (const name of preferredNames) {
+        const preferredVoice = voices.find(v => v.name.toLowerCase().includes(name.toLowerCase()));
+        if (preferredVoice) return preferredVoice.name;
+      }
     }
 
     return voices[0].name;
