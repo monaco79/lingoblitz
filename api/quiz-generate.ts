@@ -16,16 +16,15 @@ export default async function handler(req: Request) {
     try {
         const { articleContent, language, level } = await req.json();
 
-        const systemPrompt = `You are a language teacher. Create ONE multiple-choice question based on the provided article to test comprehension.
-    The question and answers should be in ${language} and appropriate for ${level} level.
-    Format:
-    Question
-    A) Option 1
-    B) Option 2
-    C) Option 3
-    D) Option 4
+        const systemPrompt = `You are a language teacher. Create ONE open-ended question based on the provided article to test comprehension.
+    The question should be in ${language} and appropriate for ${level} level.
     
-    Do not indicate the correct answer yet.`;
+    Guidelines for difficulty:
+    - Beginner (A1-A2): Simple, direct questions about facts stated clearly in the text.
+    - Intermediate (B1-B2): Questions requiring some inference or connecting ideas.
+    - Advanced (C1-C2): Complex questions about themes, opinions, or subtle details.
+
+    Do NOT create multiple choice options. Just the question.`;
 
         const userPrompt = `Article:\n${articleContent}\n\nGenerate the question now.`;
 
