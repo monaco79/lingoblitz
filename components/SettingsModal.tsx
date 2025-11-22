@@ -131,8 +131,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentSettings, onSave, 
                   key={topic}
                   onClick={() => toggleInterest(topic)}
                   className={`p-3 rounded-lingoblitz text-center transition-all duration-200 font-medium ${settings.interests?.includes(topic)
-                      ? 'gradient-lingoblitz text-white shadow-md'
-                      : 'bg-white hover:bg-gray-50 text-gray-800 dark:text-white dark:bg-gray-700 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600'
+                    ? 'gradient-lingoblitz text-white shadow-md'
+                    : 'bg-white hover:bg-gray-50 text-gray-800 dark:text-white dark:bg-gray-700 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600'
                     }`}
                 >
                   {topic}
@@ -159,7 +159,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentSettings, onSave, 
                     <select
                       value={settings.tts.voice}
                       onChange={(e) => updateTTSSettings('voice', e.target.value)}
-                      className="flex-1 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-lingoblitz py-3 px-4 focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-900 dark:text-white"
+                      className="flex-1 min-w-0 max-w-full bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-lingoblitz py-3 px-4 focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-900 dark:text-white truncate"
                     >
                       {availableVoices.map(voice => (
                         <option key={voice.name} value={voice.name}>
