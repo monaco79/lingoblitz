@@ -188,7 +188,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                     <select
                       value={settings.tts?.voice || ''}
                       onChange={(e) => updateTTSSettings('voice', e.target.value)}
-                      className="flex-1 min-w-0 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-lingoblitz py-3 px-4 focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-900 dark:text-white truncate"
+                      className="flex-1 min-w-0 max-w-full bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-lingoblitz py-3 px-4 focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-900 dark:text-white truncate"
                     >
                       {availableVoices.map(voice => (
                         <option key={voice.name} value={voice.name}>
@@ -257,7 +257,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
   return (
     <div className="flex items-center justify-center min-h-screen p-4 bg-gray-50 dark:bg-gray-900">
-      <div className="w-full max-w-2xl p-8 bg-white dark:bg-gray-800 rounded-lingoblitz shadow-2xl">
+      <div className="w-full max-w-2xl p-4 sm:p-8 bg-white dark:bg-gray-800 rounded-lingoblitz shadow-2xl">
         {renderStep()}
         <div className="flex justify-between mt-8">
           {step > 1 ? (
