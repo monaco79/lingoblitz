@@ -33,6 +33,7 @@ const getAllVoices = (): Promise<SpeechSynthesisVoice[]> => {
     const finish = (v: SpeechSynthesisVoice[]) => {
       if (resolved) return;
       resolved = true;
+      // console.log(`✅ Voices loaded: ${v.length}`);
       resolve(v);
     };
 
@@ -41,20 +42,26 @@ const getAllVoices = (): Promise<SpeechSynthesisVoice[]> => {
       finish(window.speechSynthesis.getVoices());
     };
 
-    // 2. Polling (every 100ms for 2s)
+    // 2. Polling (every 200ms for 5s)
+    let attempts = 0;
     const intervalId = setInterval(() => {
+      attempts++;
       const v = window.speechSynthesis.getVoices();
       if (v.length > 0) {
         clearInterval(intervalId);
         finish(v);
       }
-    }, 100);
+      // Stop polling after 5s
+      if (attempts > 25) {
+        clearInterval(intervalId);
+      }
+    }, 200);
 
-    // 3. Timeout (3s fallback)
+    // 3. Timeout (5s fallback)
     setTimeout(() => {
       clearInterval(intervalId);
       finish(window.speechSynthesis.getVoices()); // Return whatever we have, even if empty
-    }, 3000);
+    }, 5000);
   });
 };
 
