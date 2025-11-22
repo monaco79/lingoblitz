@@ -241,9 +241,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentSettings, onSave, 
         </details>
       </div>
     </div>
-    </div >
   );
-};
 };
 
 const SelectInput: React.FC<{ label: string; value: string; onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void; options: string[] }> = ({ label, value, onChange, options }) => (
