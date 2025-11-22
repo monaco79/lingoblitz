@@ -22,7 +22,7 @@ export default async function handler(req: Request) {
     
     IMPORTANT FORMATTING RULES:
     - Provide ONLY the topics, separated by a pipe character (|).
-    - Each topic must be an engaging, descriptive title (2-6 words) (e.g., "The Future of Artificial Intelligence", "Sustainable Travel Tips", "My Grandmother's Secret Recipe").
+    - Each topic must be an engaging, descriptive title (2-6 words) IN THE TARGET LANGUAGE (${language}) (e.g., "The Future of Artificial Intelligence", "Sustainable Travel Tips", "My Grandmother's Secret Recipe").
     - DO NOT use questions, commands, or sentences (e.g., NO "Describe your day", NO "What is your hobby?").
     - No numbering, no extra text.`;
 

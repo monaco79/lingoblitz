@@ -54,7 +54,7 @@ const TopicSelector: React.FC<TopicSelectorProps> = ({ proposals, onBlitz, onNew
             key={i}
             onClick={() => handleProposalClick(p)}
             className={`p-4 rounded-lingoblitz text-left transition-all duration-200 font-medium min-h-[100px] flex items-center ${selectedTopic === p && !customTopic
-                ? 'gradient-lingoblitz text-white shadow-lg ring-2 ring-purple-400 ring-offset-2 dark:ring-offset-gray-800'
+                ? 'gradient-lingoblitz text-white shadow-xl scale-[1.01]'
                 : 'bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-800 dark:text-white border-2 border-gray-200 dark:border-gray-600'
               }`}
           >
