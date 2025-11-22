@@ -188,7 +188,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                     <select
                       value={settings.tts?.voice || ''}
                       onChange={(e) => updateTTSSettings('voice', e.target.value)}
-                      className="flex-1 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-lingoblitz py-3 px-4 focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-900 dark:text-white"
+                      className="flex-1 min-w-0 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-lingoblitz py-3 px-4 focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-900 dark:text-white truncate"
                     >
                       {availableVoices.map(voice => (
                         <option key={voice.name} value={voice.name}>

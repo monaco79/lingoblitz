@@ -33,7 +33,7 @@ export enum Topic {
   TrueCrime = 'True Crime',
   Fashion = 'Fashion',
   Psychology = 'Psychology',
-  Economics = 'Economics / Entrepreneurship',
+  Economics = 'Economics',
 }
 
 export interface TTSSettings {

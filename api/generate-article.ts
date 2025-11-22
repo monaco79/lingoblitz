@@ -1,37 +1,30 @@
-import { OpenAI } from 'openai';
+import { LEVEL_DESCRIPTIONS, LEVEL_WORD_COUNTS } from '../constants';
+import { Level } from '../types';
 
-export const config = {
-    runtime: 'edge',
-};
+// ...
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+try {
+    const { topic, settings } = await req.json();
+    const level = settings.level as Level;
 
-export default async function handler(req: Request) {
-    if (req.method !== 'POST') {
-        return new Response('Method not allowed', { status: 405 });
-    }
+    const levelDescription = LEVEL_DESCRIPTIONS[level] || "Simple language";
+    const wordCount = LEVEL_WORD_COUNTS[level] || 100;
 
-    try {
-        const { topic, settings } = await req.json();
+    const systemPrompt = `You are a helpful language tutor. Write an article about "${topic}" for a student with ${level} level in ${settings.learningLanguage}.`;
 
-        const levelDescription = settings.level; // You might want to map this if needed, but passing the string is fine
-        const wordCount = settings.level === 'Absolute Beginner' ? 100 :
-            settings.level === 'A1 (Beginner)' ? 150 :
-                settings.level === 'A2 (Elementary)' ? 200 :
-                    settings.level === 'B1 (Intermediate)' ? 250 :
-                        settings.level === 'B2 (Upper Intermediate)' ? 300 : 350;
-
-        const systemPrompt = `You are a helpful language tutor. Write an article about "${topic}" for a student with ${settings.level} level in ${settings.learningLanguage}.`;
-
-        const userPrompt = `REQUIREMENTS:
-- Target level: ${settings.level}
+    const userPrompt = `REQUIREMENTS:
+- Target level: ${level}
 - Level description: ${levelDescription}
-- Target word count: ${wordCount} words
+- Target word count: Approximately ${wordCount} words (Strictly adhere to this limit)
 - Format: Title on first line, then newline, then article body
 - Structure the article with clear paragraphs separated by double newlines
 - No markdown formatting
+- IMPORTANT: For Absolute Beginner, use extremely short sentences and basic vocabulary only.
+
+Write the article now.`;
+    - Format: Title on first line, then newline, then article body
+        - Structure the article with clear paragraphs separated by double newlines
+            - No markdown formatting
 
 Write the article now.`;
 
