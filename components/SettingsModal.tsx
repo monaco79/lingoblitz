@@ -242,7 +242,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentSettings, onSave, 
                 </div>
 
                 {/* Auto-read checkbox */}
-                <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lingoblitz">
+                <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lingoblitz mb-6">
                   <input
                     type="checkbox"
                     id="autoRead"
