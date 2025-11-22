@@ -121,7 +121,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentSettings, onSave, 
 
   return (
     <div className="fixed inset-0 bg-gray-900/50 dark:bg-black/70 flex items-center justify-center p-4 z-50">
-      <div className="w-[95%] md:w-full max-w-2xl bg-white dark:bg-gray-800 rounded-lingoblitz shadow-2xl p-4 sm:p-8 relative max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-lingoblitz shadow-2xl p-4 sm:p-8 relative max-h-[90vh] overflow-y-auto">
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white">
           <CloseIcon />
         </button>

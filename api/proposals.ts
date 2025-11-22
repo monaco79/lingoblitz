@@ -19,7 +19,12 @@ export default async function handler(req: Request) {
         const systemPrompt = `You are a creative language tutor. Generate ${count} interesting, specific, and engaging conversation topics for a student learning ${language} at ${level} level.
     The topics should be related to these interests: ${interests.join(', ')}.
     Do NOT suggest these topics: ${previouslyBlitzed.join(', ')}.
-    Provide ONLY the topics, separated by a pipe character (|). No numbering, no extra text.`;
+    
+    IMPORTANT FORMATTING RULES:
+    - Provide ONLY the topics, separated by a pipe character (|).
+    - Each topic must be a SHORT NOUN PHRASE (e.g., "The Future of AI", "Sustainable Travel", "My Favorite Recipe").
+    - DO NOT use questions, commands, or sentences (e.g., NO "Describe your day", NO "What is your hobby?").
+    - No numbering, no extra text.`;
 
         const userPrompt = `Generate ${count} topics now.`;
 
