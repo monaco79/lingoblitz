@@ -71,6 +71,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentSettings, onSave, 
 
     loadingRef.current = true;
     setIsLoadingVoices(true);
+
+    // Safety timeout: Stop loading after 5 seconds even if voices don't appear
+    const timeoutId = setTimeout(() => {
+      if (loadingRef.current) {
+        console.warn('Voice loading timed out');
+        setIsLoadingVoices(false);
+        loadingRef.current = false;
+      }
+    }, 5000);
+
     try {
       const voices = await ttsService.getVoicesForLanguage(settings.learningLanguage);
       setAvailableVoices(voices);
@@ -85,6 +95,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentSettings, onSave, 
     } catch (error) {
       console.error('Failed to load voices:', error);
     } finally {
+      clearTimeout(timeoutId);
       setIsLoadingVoices(false);
       loadingRef.current = false;
     }
@@ -126,7 +137,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentSettings, onSave, 
 
   const canSave = settings.nativeLanguage !== settings.learningLanguage &&
     (settings.interests?.length || 0) > 0 &&
-    settings.tts.voice !== '';
+    (settings.tts.voice !== '' || availableVoices.length === 0);
 
   return (
     <div className="fixed inset-0 bg-gray-900/50 dark:bg-black/70 flex items-center justify-center p-4 z-50">
@@ -175,33 +186,39 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentSettings, onSave, 
                 {/* Voice Selection */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Voice</label>
-                  <div className="flex gap-2">
-                    <select
-                      value={settings.tts.voice}
-                      onChange={(e) => updateTTSSettings('voice', e.target.value)}
-                      className="flex-1 min-w-0 max-w-full bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-lingoblitz py-3 px-4 focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-900 dark:text-white truncate"
-                    >
-                      {availableVoices.map(voice => (
-                        <option key={voice.name} value={voice.name}>
-                          {voice.displayName}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={playSampleVoice}
-                      disabled={isPlayingSample || !settings.tts.voice}
-                      className="bg-white hover:bg-gray-50 dark:bg-gray-700 dark:hover:bg-gray-600 border-2 border-[#6263C4] text-gray-800 dark:text-white p-3 rounded-lingoblitz transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Play sample"
-                    >
-                      {isPlayingSample ? (
-                        <LoadingSpinner className="h-6 w-6" />
-                      ) : (
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
+                  {availableVoices.length > 0 ? (
+                    <div className="flex gap-2">
+                      <select
+                        value={settings.tts.voice}
+                        onChange={(e) => updateTTSSettings('voice', e.target.value)}
+                        className="flex-1 min-w-0 max-w-full bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-lingoblitz py-3 px-4 focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-900 dark:text-white truncate"
+                      >
+                        {availableVoices.map(voice => (
+                          <option key={voice.name} value={voice.name}>
+                            {voice.displayName}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={playSampleVoice}
+                        disabled={isPlayingSample || !settings.tts.voice}
+                        className="bg-white hover:bg-gray-50 dark:bg-gray-700 dark:hover:bg-gray-600 border-2 border-[#6263C4] text-gray-800 dark:text-white p-3 rounded-lingoblitz transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Play sample"
+                      >
+                        {isPlayingSample ? (
+                          <LoadingSpinner className="h-6 w-6" />
+                        ) : (
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded-lg text-sm">
+                      No voices found for this language. You can still save your settings, but text-to-speech might not work.
+                    </div>
+                  )}
                 </div>
 
                 {/* Speed Slider */}
@@ -250,15 +267,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentSettings, onSave, 
           Save Changes
         </button>
 
-        {/* Debug Info for Voices */}
-        <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
+        {/* Debug Info for Voices - HIDDEN FOR USER */}
+        {/* <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
           <details className="text-xs text-gray-500 dark:text-gray-400">
             <summary className="cursor-pointer hover:text-gray-700 dark:hover:text-gray-200">Debug: Available Voices ({availableVoices.length})</summary>
             <pre className="mt-2 p-2 bg-gray-100 dark:bg-gray-900 rounded overflow-x-auto whitespace-pre-wrap">
               {availableVoices.map(v => `${v.name} (${v.locale})`).join('\n')}
             </pre>
           </details>
-        </div>
+        </div> */}
       </div>
     </div>
   );

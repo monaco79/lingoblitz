@@ -48,14 +48,14 @@ const TopicSelector: React.FC<TopicSelectorProps> = ({ proposals, onBlitz, onNew
       <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white text-center">Choose Your Next Blitz!</h2>
       <p className="text-center text-gray-600 dark:text-gray-400">Pick a topic or create your own learning adventure</p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         {proposals.map((p, i) => (
           <button
             key={i}
             onClick={() => handleProposalClick(p)}
             className={`p-4 rounded-lingoblitz text-left transition-all duration-200 h-full font-medium ${selectedTopic === p && !customTopic
-                ? 'gradient-lingoblitz text-white shadow-lg transform scale-[1.02]'
-                : 'bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-800 dark:text-white border-2 border-gray-200 dark:border-gray-600'
+              ? 'gradient-lingoblitz text-white shadow-lg transform scale-[1.02]'
+              : 'bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-800 dark:text-white border-2 border-gray-200 dark:border-gray-600'
               }`}
           >
             {p}
@@ -63,12 +63,12 @@ const TopicSelector: React.FC<TopicSelectorProps> = ({ proposals, onBlitz, onNew
         ))}
       </div>
 
-      <div className="relative text-center text-gray-400 dark:text-gray-500">
-        <span className="inline-block px-3 bg-white dark:bg-gray-800 text-sm">or</span>
-        <div className="absolute left-0 top-1/2 w-full h-px bg-gray-200 dark:bg-gray-700 -z-10"></div>
+      <div className="relative flex items-center justify-center my-2">
+        <div className="absolute left-0 w-full h-px bg-gray-200 dark:bg-gray-700"></div>
+        <span className="relative z-10 px-3 bg-white dark:bg-gray-800 text-sm text-gray-400 dark:text-gray-500">or</span>
       </div>
 
-      <div className="relative">
+      <div className="relative mb-2">
         <input
           type="text"
           value={customTopic}
