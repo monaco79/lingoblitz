@@ -262,7 +262,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentSettings, onSave, 
         <button
           onClick={() => onSave(settings)}
           disabled={!canSave}
-          className="gradient-lingoblitz hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lingoblitz transition-all duration-200 shadow-md"
+          className="mt-8 gradient-lingoblitz hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lingoblitz transition-all duration-200 shadow-md"
         >
           Save Changes
         </button>
