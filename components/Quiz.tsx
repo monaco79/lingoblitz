@@ -7,6 +7,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import LoadingSpinner from './icons/LoadingSpinner';
 import { TTSSettings, Language } from '../types';
 import * as ttsService from '../services/ttsService';
+import { segmentText, cleanWord } from '../utils/textProcessing';
 
 interface QuizProps {
   question: string;
@@ -191,52 +192,62 @@ const Quiz: React.FC<QuizProps> = ({
     }
   };
 
-  const cleanWordForLookup = (word: string): string => {
-    return word.trim().replace(/^['".,!?;:]+|['".,!?;:]+$/g, '').toLowerCase();
-  };
+
 
   const makeWordsClickable = (text: string) => {
     if (!onWordClick) {
       return text.replace(/[*#_]/g, '');
     }
 
-    const words = text.split(/(\s+|[.,!?;:"()])/).filter(Boolean);
+    // Split by markdown bold/italic syntax first to preserve styling
+    // Matches **bold** or *italic*
+    const markdownParts = text.split(/(\*\*.*?\*\*|\*.*?\*)/g);
 
-    return words.map((word, index) => {
-      const isBold = word.includes('**');
-      const isItalic = !isBold && word.includes('*');
-      const displayWord = word.replace(/[*#_]/g, '');
+    return markdownParts.map((part, partIndex) => {
+      let isBold = false;
+      let isItalic = false;
+      let content = part;
 
-      const lookupWord = cleanWordForLookup(displayWord);
-      const isClickable = /\w/.test(lookupWord);
+      if (part.startsWith('**') && part.endsWith('**')) {
+        isBold = true;
+        content = part.slice(2, -2);
+      } else if (part.startsWith('*') && part.endsWith('*')) {
+        isItalic = true;
+        content = part.slice(1, -1);
+      }
+
+      // Now segment the content of this part (whether styled or not)
+      const segments = segmentText(content, language);
 
       return (
-        <span
-          key={index}
-          className={`
-            ${isClickable ? "cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-md transition-colors duration-200 px-1 py-0.5 -mx-1 -my-0.5" : ""}
-            ${isBold ? "font-bold" : ""}
-            ${isItalic ? "italic" : ""}
-          `}
-          onClick={(e) => {
-            if (isClickable && onWordClick) {
-              // Stop playback logic identical to Article.tsx
-              // If we are playing, stop the audio but keep "Playing=false, Paused=true"
-              // so user can hit "Resume" (which triggers handlePlay to restart from index)
-              if (isPlaying) {
-                ttsService.stopSpeech();
-                setIsPlaying(false);
-                setIsPaused(true);
-              }
-              // NOTE: We do NOT call ttsService.stopSpeech() here unconditionally anymore.
-              // App.tsx handles the actual word playback which involves stopping previous speech.
-              // Calling it here again might race with App.tsx's playWordAudio.
+        <span key={`part-${partIndex}`}>
+          {segments.map((segment, segIndex) => {
+            const { text: word, isWord } = segment;
+            const cleaned = cleanWord(word);
 
-              onWordClick(lookupWord, e);
-            }
-          }}
-        >
-          {displayWord}
+            return (
+              <span
+                key={`seg-${partIndex}-${segIndex}`}
+                className={`
+                  ${isWord ? "cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-md transition-colors duration-200 px-1 py-0.5 -mx-1 -my-0.5" : ""}
+                  ${isBold ? "font-bold" : ""}
+                  ${isItalic ? "italic" : ""}
+                `}
+                onClick={(e) => {
+                  if (isWord && onWordClick) {
+                    if (isPlaying) {
+                      ttsService.stopSpeech();
+                      setIsPlaying(false);
+                      setIsPaused(true);
+                    }
+                    onWordClick(cleaned, e);
+                  }
+                }}
+              >
+                {word}
+              </span>
+            );
+          })}
         </span>
       );
     });
