@@ -9,7 +9,9 @@ import Article from './components/Article';
 import TopicSelector from './components/TopicSelector';
 import LoadingSpinner from './components/icons/LoadingSpinner';
 import SettingsIcon from './components/icons/SettingsIcon';
+import InfoIcon from './components/icons/InfoIcon';
 import CloseIcon from './components/icons/CloseIcon';
+import InfoModal from './components/InfoModal';
 import SunIcon from './components/icons/SunIcon';
 import MoonIcon from './components/icons/MoonIcon';
 import PostArticleActions from './components/PostArticleActions';
@@ -31,6 +33,7 @@ const App: React.FC = () => {
   const [articleContent, setArticleContent] = useState<string>('');
   const [translationPopup, setTranslationPopup] = useState<TranslationPopup | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
   const [skippedProposalHistory, setSkippedProposalHistory] = useState<string | null>(null);
   const [quizQuestion, setQuizQuestion] = useState<string | null>(null);
   const [quizFeedback, setQuizFeedback] = useState<string | null>(null);
@@ -343,6 +346,9 @@ const App: React.FC = () => {
             <button onClick={toggleTheme} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
               {theme === 'light' ? <MoonIcon className="h-6 w-6" /> : <SunIcon className="h-6 w-6" />}
             </button>
+            <button onClick={() => setShowInfoModal(true)} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+              <InfoIcon className="h-7 w-7" />
+            </button>
             <button onClick={() => setIsSettingsOpen(true)} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
               <SettingsIcon className="h-7 w-7" />
             </button>
@@ -433,6 +439,9 @@ const App: React.FC = () => {
       {renderContent()}
       {isSettingsOpen && userSettings && (
         <SettingsModal currentSettings={userSettings} onSave={handleSaveSettings} onClose={() => setIsSettingsOpen(false)} />
+      )}
+      {showInfoModal && (
+        <InfoModal onClose={() => setShowInfoModal(false)} />
       )}
       {translationPopup && (
         <div
