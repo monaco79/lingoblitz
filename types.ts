@@ -10,6 +10,7 @@ export enum Language {
   Portuguese = 'Portuguese',
   Japanese = 'Japanese',
   Chinese = 'Chinese (Mandarin)',
+  Dutch = 'Dutch',
 }
 
 export enum Level {

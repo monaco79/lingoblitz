@@ -45,6 +45,7 @@ export const LANGUAGE_TO_LOCALE: { [key in Language]: string } = {
   [Language.Portuguese]: 'pt-PT',
   [Language.Japanese]: 'ja-JP',
   [Language.Chinese]: 'zh-CN',
+  [Language.Dutch]: 'nl-NL',
 };
 
 // Sample sentences for TTS preview in each language
@@ -57,13 +58,14 @@ export const TTS_SAMPLE_SENTENCES: { [key in Language]: string } = {
   [Language.Portuguese]: 'Bem-vindo ao LingoBlitz! É assim que eu soo.',
   [Language.Japanese]: 'LingoBlitzへようこそ！これが私の声です。',
   [Language.Chinese]: '欢迎来到LingoBlitz！这就是我的声音。',
+  [Language.Dutch]: 'Welkom bij LingoBlitz! Zo klink ik.',
 };
 
 // OpenAI Configuration
 export const OPENAI_CONFIG = {
   MODEL: 'gpt-4o' as const,
   FALLBACK_MODEL: 'gpt-4o-mini' as const,
-  
+
   // Temperature settings per use-case
   ARTICLE_TEMPERATURE: 0.6,
   TRANSLATION_TEMPERATURE: 0.1,
