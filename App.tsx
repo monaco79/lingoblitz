@@ -341,10 +341,10 @@ const App: React.FC = () => {
     return (
       <div className="w-full min-h-screen flex flex-col items-center p-4 sm:p-6 lg:p-8 space-y-8 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white">
         <header className="w-full max-w-4xl flex justify-between items-center py-2">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0">
             <h1 className="text-3xl sm:text-4xl font-bold text-gradient-lingoblitz leading-tight pb-1">LingoBlitz</h1>
             <div
-              className="h-9 w-9 sm:h-12 sm:w-12 bg-[#ED918E]"
+              className="h-12 w-12 sm:h-14 sm:w-14 bg-[#ED918E]"
               style={{
                 maskImage: 'url(/logo.png)',
                 maskSize: 'contain',
@@ -443,6 +443,7 @@ const App: React.FC = () => {
               setAppState(AppState.GENERATING_PROPOSALS);
             }}
             isBlitzing={false}
+            onWordClick={handleWordClick}
           />
         )}
       </div>

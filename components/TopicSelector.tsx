@@ -9,9 +9,10 @@ interface TopicSelectorProps {
   onBlitz: (topic: string) => void;
   onNewProposals: () => void;
   isBlitzing: boolean;
+  onWordClick: (word: string, event: React.MouseEvent<HTMLSpanElement>) => void;
 }
 
-const TopicSelector: React.FC<TopicSelectorProps> = ({ proposals, onBlitz, onNewProposals, isBlitzing }) => {
+const TopicSelector: React.FC<TopicSelectorProps> = ({ proposals, onBlitz, onNewProposals, isBlitzing, onWordClick }) => {
   const [selectedTopic, setSelectedTopic] = useState('');
   const [customTopic, setCustomTopic] = useState('');
 
@@ -31,6 +32,34 @@ const TopicSelector: React.FC<TopicSelectorProps> = ({ proposals, onBlitz, onNew
   const handleProposalClick = (proposal: string) => {
     setSelectedTopic(proposal);
     setCustomTopic('');
+  };
+
+  const cleanWord = (word: string): string => {
+    return word.trim().replace(/^['".,!?;:]+|['".,!?;:]+$/g, '').toLowerCase();
+  };
+
+  const makeWordsClickable = (text: string) => {
+    const words = text.split(/(\s+|[.,!?;:"()])/).filter(Boolean);
+
+    return words.map((word, arrayIndex) => {
+      const cleaned = cleanWord(word);
+      const isClickable = /\w/.test(cleaned);
+
+      return (
+        <span
+          key={`word-${arrayIndex}`}
+          className={`${isClickable ? "cursor-pointer hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-100" : ""}`}
+          onClick={(e) => {
+            if (isClickable) {
+              e.stopPropagation(); // Prevent selecting the topic
+              onWordClick(cleaned, e);
+            }
+          }}
+        >
+          {word}
+        </span>
+      );
+    });
   };
 
   return (
@@ -54,11 +83,11 @@ const TopicSelector: React.FC<TopicSelectorProps> = ({ proposals, onBlitz, onNew
             key={i}
             onClick={() => handleProposalClick(p)}
             className={`p-4 rounded-lingoblitz text-left transition-all duration-200 font-medium min-h-[100px] flex items-center ${selectedTopic === p && !customTopic
-                ? 'gradient-lingoblitz text-white shadow-xl scale-[1.01]'
-                : 'bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-800 dark:text-white border-2 border-gray-200 dark:border-gray-600'
+              ? 'gradient-lingoblitz text-white shadow-xl scale-[1.01]'
+              : 'bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-800 dark:text-white border-2 border-gray-200 dark:border-gray-600'
               }`}
           >
-            {p}
+            <span className="w-full">{makeWordsClickable(p)}</span>
           </button>
         ))}
       </div>
