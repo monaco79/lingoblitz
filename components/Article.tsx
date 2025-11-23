@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Level, TTSSettings, Language } from '../types';
 import * as ttsService from '../services/ttsService';
+import { segmentText, cleanWord } from '../utils/textProcessing';
 
 interface ArticleProps {
   title: string;
@@ -25,66 +26,27 @@ const Article: React.FC<ArticleProps> = ({ title, content, level, ttsSettings, l
   // Tracks the starting offset of the current utterance (used when resuming)
   const playbackOffsetRef = useRef(0);
 
-  const cleanWord = (word: string): string => {
-    return word.trim().replace(/^['".,!?;:]+|['".,!?;:]+$/g, '').toLowerCase();
-  };
-
   // Reset trackers when content changes
   useEffect(() => {
     playbackIndexRef.current = 0;
     playbackOffsetRef.current = 0;
   }, [title, content]);
 
-  // Auto-play when article loads
-  useEffect(() => {
-    autoPlayTriggered.current = false;
-
-    if (ttsSettings.autoRead &&
-      content &&
-      title &&
-      ttsSettings.voice &&
-      !autoPlayTriggered.current) {
-
-      autoPlayTriggered.current = true;
-      console.log('🎵 Auto-play enabled - will start in 800ms');
-
-      const timer = setTimeout(() => {
-        if (isMounted.current) {
-          handlePlay();
-        }
-      }, 800);
-
-      return () => clearTimeout(timer);
-    }
-  }, [content, title]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      console.log('🧹 Article unmounting - stopping speech');
-      isMounted.current = false;
-      ttsService.stopSpeech();
-      setIsPlaying(false);
-      setIsPaused(false);
-    };
-  }, []);
-
   const makeWordsClickable = (text: string) => {
-    const words = text.split(/(\s+|[.,!?;:"()])/).filter(Boolean);
+    const segments = segmentText(text, language);
 
-    return words.map((word, arrayIndex) => {
+    return segments.map((segment, arrayIndex) => {
+      const { text: word, isWord } = segment;
       const cleaned = cleanWord(word);
-      const isClickable = /\w/.test(cleaned);
 
       return (
         <span
-          key={`word - ${arrayIndex} `}
+          key={`word-${arrayIndex}`}
           className={`
-            ${isClickable ? "cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-md transition-colors duration-100 px-1 py-0.5 -mx-1 -my-0.5" : ""}
-`}
+            ${isWord ? "cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-md transition-colors duration-100 px-1 py-0.5 -mx-1 -my-0.5" : ""}
+          `}
           onClick={(e) => {
-            if (isClickable) {
+            if (isWord) {
               // Stop playback if active so user can hear the word
               if (isPlaying) {
                 ttsService.stopSpeech();

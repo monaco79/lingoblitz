@@ -1,8 +1,11 @@
+```javascript
 // Last updated: 2025-11-15 18:30
 // Design update: New gradient, Poppins font, 20px rounded corners
 // Removed RefreshIcon from New Proposals button
 
 import React, { useState, useEffect } from 'react';
+import { segmentText, cleanWord } from '../utils/textProcessing';
+import { Language } from '../types';
 
 interface TopicSelectorProps {
   proposals: string[];
@@ -10,9 +13,10 @@ interface TopicSelectorProps {
   onNewProposals: () => void;
   isBlitzing: boolean;
   onWordClick: (word: string, event: React.MouseEvent<HTMLSpanElement>) => void;
+  language: Language;
 }
 
-const TopicSelector: React.FC<TopicSelectorProps> = ({ proposals, onBlitz, onNewProposals, isBlitzing, onWordClick }) => {
+const TopicSelector: React.FC<TopicSelectorProps> = ({ proposals, onBlitz, onNewProposals, isBlitzing, onWordClick, language }) => {
   const [selectedTopic, setSelectedTopic] = useState('');
   const [customTopic, setCustomTopic] = useState('');
 
@@ -34,23 +38,26 @@ const TopicSelector: React.FC<TopicSelectorProps> = ({ proposals, onBlitz, onNew
     setCustomTopic('');
   };
 
-  const cleanWord = (word: string): string => {
-    return word.trim().replace(/^['".,!?;:]+|['".,!?;:]+$/g, '').toLowerCase();
-  };
+  const makeWordsClickable = (text: string, isSelected: boolean) => {
+    const segments = segmentText(text, language);
 
-  const makeWordsClickable = (text: string) => {
-    const words = text.split(/(\s+|[.,!?;:"()])/).filter(Boolean);
-
-    return words.map((word, arrayIndex) => {
+    return segments.map((segment, arrayIndex) => {
+      const { text: word, isWord } = segment;
       const cleaned = cleanWord(word);
-      const isClickable = /\w/.test(cleaned);
+
+      // Dynamic hover color based on selection state
+      // If selected (white text), hover should be light gray/white-ish to be visible but distinct
+      // If not selected (dark text), hover should be purple
+      const hoverClass = isSelected 
+        ? "hover:text-gray-200 dark:hover:text-gray-300" 
+        : "hover:text-purple-600 dark:hover:text-purple-400";
 
       return (
         <span
-          key={`word-${arrayIndex}`}
-          className={`${isClickable ? "cursor-pointer hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-100" : ""}`}
+          key={`word - ${ arrayIndex } `}
+          className={`${ isWord ? `cursor-pointer ${hoverClass} transition-colors duration-100` : "" } `}
           onClick={(e) => {
-            if (isClickable) {
+            if (isWord) {
               e.stopPropagation(); // Prevent selecting the topic
               onWordClick(cleaned, e);
             }
@@ -78,18 +85,22 @@ const TopicSelector: React.FC<TopicSelectorProps> = ({ proposals, onBlitz, onNew
       <p className="text-center text-gray-600 dark:text-gray-400">Pick a topic or create your own learning adventure</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        {proposals.map((p, i) => (
-          <button
-            key={i}
-            onClick={() => handleProposalClick(p)}
-            className={`p-4 rounded-lingoblitz text-left transition-all duration-200 font-medium min-h-[100px] flex items-center ${selectedTopic === p && !customTopic
-              ? 'gradient-lingoblitz text-white shadow-xl scale-[1.01]'
-              : 'bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-800 dark:text-white border-2 border-gray-200 dark:border-gray-600'
-              }`}
-          >
-            <span className="w-full">{makeWordsClickable(p)}</span>
-          </button>
-        ))}
+        {proposals.map((p, i) => {
+          const isSelected = selectedTopic === p && !customTopic;
+          return (
+            <button
+              key={i}
+              onClick={() => handleProposalClick(p)}
+              className={`p - 4 rounded - lingoblitz text - left transition - all duration - 200 font - medium min - h - [100px] flex items - center ${
+  isSelected
+    ? 'gradient-lingoblitz text-white shadow-xl scale-[1.01]'
+    : 'bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-800 dark:text-white border-2 border-gray-200 dark:border-gray-600'
+} `}
+            >
+              <span className="w-full">{makeWordsClickable(p, isSelected)}</span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="relative flex items-center justify-center my-2">
