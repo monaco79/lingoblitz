@@ -1,8 +1,3 @@
-```javascript
-// Last updated: 2025-11-15 18:30
-// Design update: New gradient, Poppins font, 20px rounded corners
-// Removed RefreshIcon from New Proposals button
-
 import React, { useState, useEffect } from 'react';
 import { segmentText, cleanWord } from '../utils/textProcessing';
 import { Language } from '../types';
@@ -46,16 +41,14 @@ const TopicSelector: React.FC<TopicSelectorProps> = ({ proposals, onBlitz, onNew
       const cleaned = cleanWord(word);
 
       // Dynamic hover color based on selection state
-      // If selected (white text), hover should be light gray/white-ish to be visible but distinct
-      // If not selected (dark text), hover should be purple
-      const hoverClass = isSelected 
-        ? "hover:text-gray-200 dark:hover:text-gray-300" 
+      const hoverClass = isSelected
+        ? "hover:text-gray-200 dark:hover:text-gray-300"
         : "hover:text-purple-600 dark:hover:text-purple-400";
 
       return (
         <span
-          key={`word - ${ arrayIndex } `}
-          className={`${ isWord ? `cursor-pointer ${hoverClass} transition-colors duration-100` : "" } `}
+          key={`word-${arrayIndex}`}
+          className={`${isWord ? `cursor-pointer ${hoverClass} transition-colors duration-100` : ""}`}
           onClick={(e) => {
             if (isWord) {
               e.stopPropagation(); // Prevent selecting the topic
@@ -91,11 +84,10 @@ const TopicSelector: React.FC<TopicSelectorProps> = ({ proposals, onBlitz, onNew
             <button
               key={i}
               onClick={() => handleProposalClick(p)}
-              className={`p - 4 rounded - lingoblitz text - left transition - all duration - 200 font - medium min - h - [100px] flex items - center ${
-  isSelected
-    ? 'gradient-lingoblitz text-white shadow-xl scale-[1.01]'
-    : 'bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-800 dark:text-white border-2 border-gray-200 dark:border-gray-600'
-} `}
+              className={`p-4 rounded-lingoblitz text-left transition-all duration-200 font-medium min-h-[100px] flex items-center ${isSelected
+                ? 'gradient-lingoblitz text-white shadow-xl scale-[1.01]'
+                : 'bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-800 dark:text-white border-2 border-gray-200 dark:border-gray-600'
+                }`}
             >
               <span className="w-full">{makeWordsClickable(p, isSelected)}</span>
             </button>
