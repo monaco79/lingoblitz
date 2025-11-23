@@ -51,6 +51,22 @@ Licensed under CC BY-NC 4.0.
 
 ---
 
+## 📱 Add to Home Screen
+
+For the best experience on mobile, you can add LingoBlitz to your home screen to use it like a native app:
+
+**iOS (Safari):**
+1. Tap the **Share** button (square with arrow up).
+2. Scroll down and tap **"Add to Home Screen"**.
+3. Tap **Add**.
+
+**Android (Chrome):**
+1. Tap the **Menu** button (three dots).
+2. Tap **"Add to Home screen"** or **"Install app"**.
+3. Follow the prompts to install.
+
+---
+
 ## 🛠 Tech Stack
 
 - **Frontend:** React 19 with TypeScript
