@@ -42,7 +42,7 @@ Provide feedback in ${language}. Do NOT use a numbered list in your response. In
 - Brief language feedback
 - Gentle corrections if needed
 
-Keep it 2-4 sentences. Use markdown emphasis for key points.
+Keep it 2-4 sentences. Use markdown emphasis for key points. Make sure to write your response in a ways adequate for a ${level} level ${language} learner.
 
 Level guidance: ${levelDescription}`;
 
