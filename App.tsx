@@ -341,10 +341,10 @@ const App: React.FC = () => {
     return (
       <div className="w-full min-h-screen flex flex-col items-center p-4 sm:p-6 lg:p-8 space-y-8 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white">
         <header className="w-full max-w-4xl flex justify-between items-center py-2">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <h1 className="text-3xl sm:text-4xl font-bold text-gradient-lingoblitz leading-tight pb-1">LingoBlitz</h1>
             <div
-              className="h-8 w-8 sm:h-10 sm:w-10 bg-[#ED918E]"
+              className="h-9 w-9 sm:h-12 sm:w-12 bg-[#ED918E]"
               style={{
                 maskImage: 'url(/logo.png)',
                 maskSize: 'contain',
